@@ -1743,136 +1743,111 @@ bot('sendMessage',[
 deleteFolder("sozlamalar/bot/$kat/$roy/$xiz");
 }
 
+// 1. ASOSIY BO'LIMLAR RO'YXATI
 if($data == "xiztah"){
-$more = explode("\n",$bolim);
-$soni = substr_count($bolim,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$ichida = file_get_contents("sozlamalar/bot/".$more[$for]."/ichkibolim.txt");
-$ta = substr_count($ichida,"\n");
-$keys[]=["text"=>"$more[$for] $ta->","callback_data"=>"tanla-".$more[$for]];
-$keysboard2 = array_chunk($keys, $byson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"xizmatlar"]];
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
+    $more = explode("\n", $bolim);
+    $soni = substr_count($bolim, "\n");
+    $keys = [];
+    for ($for = 1; $for <= $soni; $for++) {
+        $kat_nomi = trim($more[$for]);
+        if(!empty($kat_nomi)){
+            $ichida = file_get_contents("sozlamalar/bot/".$kat_nomi."/ichkibolim.txt");
+            $ta = substr_count($ichida, "\n");
+            $keys[] = ["text" => "$kat_nomi $ta->", "callback_data" => "tanla-" . $kat_nomi];
+        }
+    }
+    $keysboard2 = array_chunk($keys, $byson);
+    $keysboard2[] = [['text' => "◀️ Orqaga", 'callback_data' => "xizmatlar"]];
+    $key = json_encode(['inline_keyboard' => $keysboard2]);
 
-    if(strpos($data, "tanla-") !== false){
-    $kat = explode("-", $data)[1];
+    if($bolim != null){
+        bot('editMessageText',[
+            'chat_id'=>$ccid,
+            'message_id'=>$cmid,
+            'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+            'parse_mode'=>'html',
+            'reply_markup'=>$key,
+        ]);
+    } else {
+        bot('answerCallbackQuery',[
+            'callback_query_id'=>$callid,
+            'text'=>"🔒 Bo'limlar mavjud emas!",
+            'show_alert'=>true,
+        ]);
+    }
+} // <--- SHU YERDA BLOCK YOPILISHI KERAK EDI
+
+// 2. ICHKI BO'LIMLARNI CHIQARISH (Kategoriya tanlanganda)
+if(mb_stripos($data, "tanla-") !== false){
+    $ex = explode("-", $data);
+    $kat = $ex[1];
+    file_put_contents("step/$ccid.bol", $kat); // Kategoriya saqlandi
+    
     $royxat = file_get_contents("sozlamalar/bot/$kat/ichkibolim.txt");
     $more = explode("\n", $royxat);
     $soni = substr_count($royxat, "\n");
     $keys = [];
-    
     for ($for = 1; $for <= $soni; $for++) {
-        $nomi = trim($more[$for]);
-        if(!empty($nomi)){
-            $keys[] = ["text" => "$nomi", "callback_data" => "viewserv-".$kat."-".$nomi];
+        $ichki_nomi = trim($more[$for]);
+        if(!empty($ichki_nomi)){
+            $keys[] = ["text" => "$ichki_nomi", "callback_data" => "tanxiz-" . $ichki_nomi];
         }
     }
-    
-    $keysboard = array_chunk($keys, 1);
-    $keysboard[] = [['text' => "➕ Ichki xizmat qo'shish", 'callback_data' => "addichki-$kat"]];
-    $keysboard[] = [['text' => "◀️ Orqaga", 'callback_data' => "xiztah"]];
-    
-    bot('editMessageText', [
-        'chat_id' => $ccid,
-        'message_id' => $cmid,
-        'text' => "<b>$kat</b> kategoriyasi ichidagi xizmatlar:",
-        'parse_mode' => 'html',
-        'reply_markup' => json_encode(['inline_keyboard' => $keysboard])
-    ]);
-}
-    
-if($bolim != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"🔒 Bo'limlar mavjud emas!",
-'show_alert'=>true,
-]);
-}}
+    $keysboard2 = array_chunk($keys, $ibyson);
+    $keysboard2[] = [['text' => "◀️ Orqaga", 'callback_data' => "xiztah"]];
+    $key = json_encode(['inline_keyboard' => $keysboard2]);
 
-if(mb_stripos($data, "tanla-")!==false){
-$ex = explode("-",$data);
-$kat = $ex[1];
-file_put_contents("step/$ccid.bol","$kat");
-$royxat = file_get_contents("sozlamalar/bot/$kat/ichkibolim.txt");
-$more = explode("\n",$royxat);
-$soni = substr_count($royxat,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$ichida = file_get_contents("sozlamalar/bot/$kat/".$more[$for]."/xizmatbolim.txt");
-$ta = substr_count($ichida,"\n");
-$keys[]=["text"=>"$more[$for] $ta->","callback_data"=>"tanxiz-".$more[$for]];
-$keysboard2 = array_chunk($keys, $ibyson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"xiztah"]];
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
+    if($royxat != null){
+        bot('editMessageText',[
+            'chat_id'=>$ccid,
+            'message_id'=>$cmid,
+            'text'=>"<b>$kat:</b> Ichki bo'limni tanlang:",
+            'parse_mode'=>'html',
+            'reply_markup'=>$key,
+        ]);
+    } else {
+        bot('answerCallbackQuery',[
+            'callback_query_id'=>$callid,
+            'text'=>"🔒 Ichki bo'limlar mavjud emas!",
+            'show_alert'=>true,
+        ]);
+    }
 }
-if($royxat != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"🔒 Ichki bo'limlar mavjud emas!",
-'show_alert'=>true,
-]);
-}}
 
-if(mb_stripos($data, "tanxiz-")!==false){
-$ex = explode("-",$data);
-$kat = file_get_contents("step/$ccid.bol");
-$roy = $ex[1];
-file_put_contents("step/$ccid.ich","$ich");
-$royxat = file_get_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt");
-$ids = explode("\n",$royxat);
-$soni = substr_count($royxat,"\n");
-foreach($ids as $id){
-$key = [];
-$text = "";
-for ($for = 1; $for <= $soni; $for++) {
-$text .= "<b>$for.</b> ".$ids[$for]."\n";
-$key[]=["text"=>"$for","callback_data"=>"tahrirla-".$ids[$for]];
-}
-$keysboard2 = array_chunk($key, $xizson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"tanla-$kat"]];
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-if($royxat != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"📋 <b>Kerakli xizmatni tanlang:</b>
+// 3. ANIQ XIZMATLARNI RO'YXATI
+if(mb_stripos($data, "tanxiz-") !== false){
+    $ex = explode("-", $data);
+    $kat = file_get_contents("step/$ccid.bol");
+    $roy = $ex[1]; // Tanlangan ichki bo'lim
+    file_put_contents("step/$ccid.ich", $roy); // Ichki bo'lim saqlandi
 
-$text",
-'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"🔒 Xizmatlar mavjud emas!",
-'show_alert'=>true,
-]);
-}}
+    $royxat = file_get_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt");
+    $ids = explode("\n", $royxat);
+    $soni = substr_count($royxat, "\n");
+    
+    $key = [];
+    $text = "";
+    for ($for = 1; $for <= $soni; $for++) {
+        $xiz_nomi = trim($ids[$for]);
+        if(!empty($xiz_nomi)){
+            $text .= "<b>$for.</b> $xiz_nomi\n";
+            $key[] = ["text" => "$for", "callback_data" => "tahrirla-" . $xiz_nomi];
+        }
+    }
+    $keysboard2 = array_chunk($key, 5); // Xizmatlar raqami 5 tadan teriladi
+    $keysboard2[] = [['text' => "◀️ Orqaga", 'callback_data' => "tanla-$kat"]];
+    $key_final = json_encode(['inline_keyboard' => $keysboard2]);
+
+    if($royxat != null){
+        bot('editMessageText',[
+            'chat_id'=>$ccid,
+            'message_id'=>$cmid,
+            'text'=>"📋 <b>$roy xizmatlari:</b>\n\n$text",
+            'parse_mode'=>'html',
+            'reply_markup'=>$key_final,
+        ]);
+    }
+}
 
 if(mb_stripos($data, "tahrirla-")!==false){
 $ex = explode("-",$data);
