@@ -1,5 +1,7 @@
 {
+    "name": "render/telegram-bot",
+    "description": "Telegram bot on Render",
     "require": {
-        "php": "^7.4 || ^8.0"
+        "php": "^8.1"
     }
 }
