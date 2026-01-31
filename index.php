@@ -4339,5 +4339,63 @@ $minus=file_get_contents("buyurtma/$ega.txt");
 $oladi = str_replace("\n".$id."","",$minus);
 file_put_contents("buyurtma/$ega.txt",$oladi);
 }}
+// ================= ADMIN XIZMAT QO'SHISH BOSHLANISHI =================
 
+// 1. Tugma bosilganda
+if($text == "➕ Xizmat qo'shish" and in_array($cid, $admin)){
+    file_put_contents("step/$cid.step", "nomi_qoshish");
+    bot('sendMessage',[
+        'chat_id'=>$cid,
+        'text'=>"<b>Xizmat nomini yuboring:</b>\n\nMasalan: <i>Telegram Obunachi</i>",
+        'parse_mode'=>"html",
+    ]);
+    exit();
+}
+
+// 2. Nomini yozganda
+if($step == "nomi_qoshish" and in_array($cid, $admin)){
+    file_put_contents("step/$cid.step", "narxi_qoshish");
+    file_put_contents("step/temp_name_$cid.txt", $text);
+    bot('sendMessage',[
+        'chat_id'=>$cid,
+        'text'=>"<b>Narxini yuboring (so'mda):</b>\n\nMasalan: <i>5000</i>",
+        'parse_mode'=>"html",
+    ]);
+    exit();
+}
+
+// 3. Narxini yozganda
+if($step == "narxi_qoshish" and in_array($cid, $admin)){
+    file_put_contents("step/$cid.step", "id_qoshish");
+    file_put_contents("step/temp_price_$cid.txt", $text);
+    bot('sendMessage',[
+        'chat_id'=>$cid,
+        'text'=>"<b>Xizmat ID raqamini yuboring:</b>\n\nMasalan: <i>154</i>",
+        'parse_mode'=>"html",
+    ]);
+    exit();
+}
+
+// 4. IDni yozganda va saqlash
+if($step == "id_qoshish" and in_array($cid, $admin)){
+    $nomi = file_get_contents("step/temp_name_$cid.txt");
+    $narxi = file_get_contents("step/temp_price_$cid.txt");
+    $id = $text;
+
+    // Xizmatni bazaga qo'shish (Format: ID|NOMI|NARXI)
+    file_put_contents("sozlamalar/xizmatlar.txt", "\n$id|$nomi|$narxi", FILE_APPEND);
+    
+    // Fayllarni tozalash
+    unlink("step/$cid.step");
+    unlink("step/temp_name_$cid.txt");
+    unlink("step/temp_price_$cid.txt");
+
+    bot('sendMessage',[
+        'chat_id'=>$cid,
+        'text'=>"<b>✅ Xizmat qo'shildi!</b>\n\nNomi: $nomi\nNarxi: $narxi\nID: $id",
+        'parse_mode'=>"html",
+    ]);
+    exit();
+}
+// ================= ADMIN XIZMAT QO'SHISH TUGADI =================
 ?>
