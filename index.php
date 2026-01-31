@@ -1,23 +1,23 @@
 <?php
+ob_start();
 define('API_KEY',"8318474690:AAFADTnVy0w_9oAGJTOfmItgTxLWuxxce0k");
-
 $builder24 = "8125289524";
-$admins=file_get_contents("statistika/admins.txt");
+$admins=file_get_contents("admin/admins.txt");
 $admin = explode("\n", $admins);
 array_push($admin,$builder24);
+$user = file_get_contents("admin/user.txt");
+$api = file_get_contents("admin/api.txt");
+$bot = bot('getme',['bot'])->result->username;
+$soat = date('H:i');
+$clock = date('H:i:s');
+$sana = date("d.m.Y");
 
-function bot($method,$datas=[]){
-$url = "https://api.telegram.org/bot".API_KEY."/".$method;
-$ch = curl_init();
-curl_setopt($ch,CURLOPT_URL,$url);
-curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
-curl_setopt($ch,CURLOPT_POSTFIELDS,$datas);
-$res = curl_exec($ch);
-if(curl_error($ch)){
-var_dump(curl_error($ch));
-}else{
-return json_decode($res);
-}}
+function getAdmin($chat){
+$url = "https://api.telegram.org/bot".API_KEY."/getChatAdministrators?chat_id=@".$chat;
+$result = file_get_contents($url);
+$result = json_decode ($result);
+return $result->ok;
+}
 
 function deleteFolder($path){
 if(is_dir($path) === true){
@@ -30,14 +30,32 @@ return unlink($path);
 return false;
 }
 
+function sms($id,$tx,$m){
+return bot('sendMessage',[
+'chat_id'=>$id,
+'text'=>$tx,
+'parse_mode'=>"HTML",
+'reply_markup'=>$m,
+]);
+}
+
+function get($h){
+return file_get_contents($h);
+}
+
+function put($h,$r){
+file_put_contents($h,$r);
+}
+
 function joinchat($id){
 global $mid;
 $array = array("inline_keyboard");
-$kanallar=file_get_contents("sozlamalar/kanal/ch.txt");
-if($kanallar == null){
+$get = file_get_contents("admin/kanal.txt");
+$ex = explode("\n",$get);
+if($get == null){
 return true;
 }else{
-$ex = explode("\n",$kanallar);
+$ex = explode("\n",$get);
 for($i=0;$i<=count($ex) -1;$i++){
 $first_line = $ex[$i];
 $first_ex = explode("@",$first_line);
@@ -55,10 +73,9 @@ $array['inline_keyboard']["$i"][0]['url'] = "https://t.me/$url";
 $array['inline_keyboard']["$i"][0]['text'] = "❌ ". $ism;
 $array['inline_keyboard']["$i"][0]['url'] = "https://t.me/$url";
 $uns = true;
-}
-}
+}}
 $array['inline_keyboard']["$i"][0]['text'] = "🔄 Tekshirish";
-$array['inline_keyboard']["$i"][0]['callback_data'] = "check";
+$array['inline_keyboard']["$i"][0]['callback_data'] = "result";
 if($uns == true){
 bot('sendMessage',[
 'chat_id'=>$id,
@@ -66,276 +83,363 @@ bot('sendMessage',[
 'parse_mode'=>'html',
 'disable_web_page_preview'=>true,
 'reply_markup'=>json_encode($array),
-]);  
-exit();
+]);
 return false;
 }else{
 return true;
 }}}
 
+function bot($method,$datas=[]){
+$url = "https://api.telegram.org/bot".API_KEY."/".$method;
+$ch = curl_init();
+curl_setopt($ch,CURLOPT_URL,$url);
+curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
+curl_setopt($ch,CURLOPT_POSTFIELDS,$datas);
+$res = curl_exec($ch);
+if(curl_error($ch)){
+var_dump(curl_error($ch));
+}else{
+return json_decode($res);
+}}
+
 $update = json_decode(file_get_contents('php://input'));
 $message = $update->message;
 $cid = $message->chat->id;
+$name = $message->chat->first_name;
 $tx = $message->text;
+$step = file_get_contents("step/$cid.step");
 $mid = $message->message_id;
-$name = $message->from->first_name;
-$fid = $message->from->id;
-$callback = $update->callback_query;
-$data = $callback->data;
-$callid = $callback->id;
-$ccid = $callback->message->chat->id;
-$cmid = $callback->message->message_id;
-$from_id = $update->message->from->id;
-$token = $message->text;
+$type = $message->chat->type;
 $text = $message->text;
-$message_id = $callback->message->message_id;
+$uid= $message->from->id;
+$name = $message->from->first_name;
+$familya = $message->from->last_name;
+$bio = $message->from->about;
+$username = $message->from->username;
+$chat_id = $message->chat->id;
+$message_id = $message->message_id;
+$reply = $message->reply_to_message->text;
+$nameru = "<a href='tg://user?id=$uid'>$name $familya</a>";
+
+$callback = $update->callback_query;
 $data = $update->callback_query->data;
-$callcid=$update->callback_query->message->chat->id;
-$doc = $update->message->document;
-$doc_id = $doc->file_id;
-$cqid = $update->callback_query->id;
+$qid = $update->callback_query->id;
+$id = $update->inline_query->id;
+$query = $update->inline_query->query;
+$query_id = $update->inline_query->from->id;
+$cid2 = $update->callback_query->message->chat->id;
+$mid2 = $update->callback_query->message->message_id;
 $callfrid = $update->callback_query->from->id;
-$botname = bot('getme',['bot'])->result->username;
-#-----------------------------
-mkdir("foydalanuvchi");
-mkdir("foydalanuvchi/buyurtma");
-mkdir("foydalanuvchi/referal");
-mkdir("foydalanuvchi/hisob");
-mkdir("sozlamalar/hamyon");
-mkdir("foydalanuvchi/by");
-mkdir("sozlamalar/kanal");
-mkdir("sozlamalar/tugma");
-mkdir("sozlamalar/matn");
-mkdir("sozlamalar/pul");
-mkdir("sozlamalar/bot");
-mkdir("statistika");
-mkdir("sozlamalar");
-mkdir("buyurtma");
-mkdir("step");
-mkdir("ban");
-#-----------------------------
-if(!file_exists("sozlamalar/pul/api_url.txt")){
-    // Standart holatda actualseen.uz qoladi, lekin o'zgartirish mumkin bo'ladi
-    file_put_contents("sozlamalar/pul/api_url.txt","https://actualseen.uz/api/v2");
-}
-if(!file_exists("foydalanuvchi/hisob/$fid.nak")){
-file_put_contents("foydalanuvchi/hisob/$fid.nak","0");
-}
-if(!file_exists("foydalanuvchi/hisob/$fid.txt")){
-file_put_contents("foydalanuvchi/hisob/$fid.txt","0");
-}
-if(!file_exists("foydalanuvchi/referal/$fid.txt")){
-file_put_contents("foydalanuvchi/referal/$fid.txt","0");
-}
-if(!file_exists("sozlamalar/pul/referal.txt")){
-file_put_contents("sozlamalar/pul/referal.txt","100");
-}
-if(!file_exists("sozlamalar/pul/api.txt")){
-file_put_contents("sozlamalar/pul/api.txt","");
-}
-if(!file_exists("sozlamalar/pul/valyuta.txt")){
-file_put_contents("sozlamalar/pul/valyuta.txt","so'm");
-}
-if(!file_exists("sozlamalar/tugma/xizson.txt")){
-file_put_contents("sozlamalar/tugma/xizson.txt","3");
-}
-if(!file_exists("sozlamalar/tugma/ibyson.txt")){
-file_put_contents("sozlamalar/tugma/ibyson.txt","1");
-}
-if(!file_exists("sozlamalar/tugma/byson.txt")){
-file_put_contents("sozlamalar/tugma/byson.txt","1");
-}
-if(!file_exists("buyurtma/$fid.txt")){
-file_put_contents("buyurtma/$fid.txt","");
-}
-if(!file_exists("sozlamalar/tugma/hamson.txt")){
-file_put_contents("sozlamalar/tugma/hamson.txt","1");
-}
-if(!file_exists("sozlamalar/tugma/tugma1.txt")){
-file_put_contents("sozlamalar/tugma/tugma1.txt","➕ Buyurtma berish");
-}
-if(!file_exists("sozlamalar/tugma/tugma2.txt")){
-file_put_contents("sozlamalar/tugma/tugma2.txt","👔 Kabinet");
-}
-if(!file_exists("sozlamalar/tugma/tugma3.txt")){
-file_put_contents("sozlamalar/tugma/tugma3.txt","💵 Pul yig'ish");
-}
-if(!file_exists("sozlamalar/tugma/tugma4.txt")){
-file_put_contents("sozlamalar/tugma/tugma4.txt","📊 Buyurtmani kuzatish");
-}
-if(!file_exists("sozlamalar/tugma/tugma5.txt")){
-file_put_contents("sozlamalar/tugma/tugma5.txt","📨 Yordam");
-}
-if(!file_exists("sozlamalar/tugma/tugma6.txt")){
-file_put_contents("sozlamalar/tugma/tugma6.txt","📚 Bot haqida");
-}
-if(!file_exists("sozlamalar/tugma/tugma7.txt")){
-file_put_contents("sozlamalar/tugma/tugma7.txt","🔗 Taklifnoma");
-}
-if(!file_exists("sozlamalar/tugma/tugma8.txt")){  
-file_put_contents("sozlamalar/tugma/tugma8.txt","🎁 Kunlik bonus");
-}
-if(!file_exists("sozlamalar/tugma/tugma9.txt")){  
-file_put_contents("sozlamalar/tugma/tugma9.txt","🎫 Promokod");
-}
-if(!file_exists("sozlamalar/matn/start.txt")){
-file_put_contents("sozlamalar/matn/start.txt","🖥");
-}
-if(!file_exists("sozlamalar/matn/qoida.txt")){
-file_put_contents("sozlamalar/matn/qoida.txt","<b>Muhum Qoidalari❗️</b>
+$callname = $update->callback_query->from->first_name;
+$calluser = $update->callback_query->from->username;
+$surname = $update->callback_query->from->last_name;
+$about = $update->callback_query->from->about;
+$nameuz = "<a href='tg://user?id=$callfrid'>$callname $surname</a>";
 
-<i>• Adminga yolgʻon xabar yubormang. Bu uchun botda ban olishingiz mumkin!
-
-• Yordam boʻlimidan foydalanayotganda adminga haqiratli soʻz yozmang. Bu uchun botda ban olishingiz mumkin!
-
-• Buyurtma berilgan linkning buyurtmasi bajarilmasdan oʻsha link uchun yana buyurtma bermang. Bu holdagi xatolik uchun sizga pul qaytarilmaydi!
-
-• Admindan tekinga yoki savob uchun hisobingizni toʻldirishni soʻramang!
-
-• Admin hamyoniga kiritilgan pullar yoki bot hisobidagi pullaringizni chiqarib yoki qaytarib ololmaysiz. Pul kirgizishda summa miqdoriga yaxshilan etibor bering!</i>
-
-<b>Qoʻshimcha maʼlumotlar olish uchun admin bilan bogʻlaning.</b>");
-}
-if(!file_exists("sozlamalar/matn/qollama.txt")){
-file_put_contents("sozlamalar/matn/qollama.txt","<b>Tez-tez beriladigan savollarga javoblar:</b>
-
-⁉️ <b>$botname oʻzi qanday bot va nima vazifa bajaradi?</b>
-✅ <i>$botname orqali oʻzingizni Kanal, guruh va profillaringiz obunachi, yoqtirish, koʻrish va boshqa kerakli xizmatlarini koʻpaytirish imkoniyatiga egasiz. Eng muhumi bularning barchasi tez, sifatli, ishonchli va hamyonbob boʻladi.</i>
-
-⁉️ <b>Hisobimni qanday toʻldirsam boʻladi?</b>
-✅ <i>Hisobingizni toʻldirish uchun botdagi [Hisobim] boʻlimiga kiring va [Pul kiritish] tugmasinu bosing. Oʻzingizga kerakli hamyonni tanlab toʻlov qiling. Toʻlov haqidagi soʻroʻvingiz 30daqiqa ichida koʻrib chiqiladi.</i>
-
-⁉️ <b>Qanday qilib buyurtma berish mumkin?</b>
-✅ <i>Buyurtma berish uchun [Buyurtma berish] boʻlimiga kiring. Oʻzingizga kerakli Ijtimoiy tarmoqni tanlang. Oʻzingizga kerakli boʻlimni tanlang soʻng kerakli xizmatni tanlab miqdor va havolani kiritish kifoya.</i>");
-}
-if(!file_exists("sozlamalar/kanal/ch.txt")){
-file_put_contents("sozlamalar/kanal/ch.txt","");
-}
-if(!file_exists("sozlamalar/kanal/promo.txt")){
-file_put_contents("sozlamalar/kanal/promo.txt","");
-}
-if(file_get_contents("statistika/obunachi.txt")){
-} else{
-file_put_contents("statistika/obunachi.txt", "0");
-}
-if(file_get_contents("statistika/admins.txt")){
+if(file_get_contents("tugma/key1.txt")){
 }else{
-if(file_put_contents("statistika/admins.txt","$builder24"));
+if(file_put_contents("tugma/key1.txt",'🗂 Xizmatlarga buyurtma berish'));
 }
-if(!file_exists("statistika/id.txt")){
-file_put_contents("statistika/id.txt","0");
+if(file_get_contents("tugma/key2.txt")){
+}else{
+if(file_put_contents("tugma/key2.txt","🛒 Buyurtmalar"));
 }
-if(!file_exists("sozlamalar/pul/bonmiq.txt")){  
-file_put_contents("sozlamalar/pul/bonmiq.txt","100");
+if(file_get_contents("tugma/key3.txt")){
+}else{
+if(file_put_contents("tugma/key3.txt",'🔗 Taklifnoma'));
 }
-if(!file_exists("sozlamalar/pul/bonnom.txt")){  
-file_put_contents("sozlamalar/pul/bonnom.txt","");
+if(file_get_contents("tugma/key4.txt")){
+}else{
+if(file_put_contents("tugma/key4.txt",'💳 Hisobim'));
 }
-if(!file_exists("sozlamalar/kanal/promo.txt")){
-file_put_contents("sozlamalar/kanal/promo.txt","");
+if(file_get_contents("tugma/key5.txt")){
+}else{
+if(file_put_contents("tugma/key5.txt","➕ Pul kiritish"));
 }
-$bonus=file_get_contents("sozlamalar/pul/bonmiq.txt");
-$bonusnom=file_get_contents("sozlamalar/pul/bonnom.txt");
+if(file_get_contents("tugma/key6.txt")){
+}else{
+if(file_put_contents("tugma/key6.txt","☎️ Qo'llab-quvvatlash"));
+}
+if(file_get_contents("tugma/qator1.txt")){
+}else{
+if(file_put_contents("tugma/qator1.txt",'2'));
+}
+if(file_get_contents("tugma/qator2.txt")){
+}else{
+if(file_put_contents("tugma/qator2.txt",'1'));
+}
+if(file_get_contents("tugma/qator3.txt")){
+}else{
+if(file_put_contents("tugma/qator3.txt",'5'));
+}
+if(file_get_contents("tugma/qator4.txt")){
+}else{
+if(file_put_contents("tugma/qator4.txt",'2'));
+}
+if(file_get_contents("admin/valyuta.txt")){
+}else{
+if(file_put_contents("admin/valyuta.txt","so'm"));
+}
+if(file_get_contents("admin/api.txt")){
+}else{
+if(file_put_contents("admin/api.txt",""));
+}
+if(file_get_contents("admin/sayt.txt")){
+}else{
+if(file_put_contents("admin/sayt.txt",""));
+}
+if(file_get_contents("admin/foiz.txt")){
+}else{
+if(file_put_contents("admin/foiz.txt","10"));
+}
+if(file_get_contents("admin/foiz2.txt")){
+}else{
+if(file_put_contents("admin/foiz2.txt","5"));
+}
+if(file_get_contents("admin/kurs.txt")){
+}else{
+if(file_put_contents("admin/kurs.txt","1"));
+}
+if(file_get_contents("admin/referal.txt")){
+}else{
+if(file_put_contents("admin/referal.txt",'5'));
+}
+if(file_get_contents("admin/transfer.txt")){
+}else{
+if(file_put_contents("admin/transfer.txt",'0'));
+}
+if(file_get_contents("admin/admins.txt")){
+}else{
+if(file_put_contents("admin/admins.txt","$builder24"));
+}
+if(file_get_contents("admin/vip.txt")){
+}else{
+if(file_put_contents("admin/vip.txt","15000"));
+}
+if(!file_exists("bonus/bonmiq.txt")){  
+file_put_contents("bonus/bonmiq.txt","100");
+}
+if(!file_exists("bonus/bonnom.txt")){  
+file_put_contents("bonus/bonnom.txt","");
+}
 
-$kiritgan=file_get_contents("foydalanuvchi/hisob/$fid.1.txt");
-$odamcha = file_get_contents("foydalanuvchi/referal/$fid.db");
-$asosiy=file_get_contents("foydalanuvchi/hisob/$fid.txt");
-$buyurtma=file_get_contents("buyurtma/$fid.txt");
-$by=file_get_contents("foydalanuvchi/hisob/$fid.nak");
-$api=file_get_contents("sozlamalar/pul/api.txt");
-$pul = file_get_contents("sozlamalar/pul/valyuta.txt");
-$taklifpul = file_get_contents("sozlamalar/pul/referal.txt");
-$hamson = file_get_contents("sozlamalar/tugma/hamson.txt");
-$byson = file_get_contents("sozlamalar/tugma/byson.txt");
-$ibyson = file_get_contents("sozlamalar/tugma/ibyson.txt");
-$xizson = file_get_contents("sozlamalar/tugma/xizson.txt");
-$tugma1 = file_get_contents("sozlamalar/tugma/tugma1.txt");
-$tugma2 = file_get_contents("sozlamalar/tugma/tugma2.txt");
-$tugma3 = file_get_contents("sozlamalar/tugma/tugma3.txt");
-$tugma4 = file_get_contents("sozlamalar/tugma/tugma4.txt");
-$tugma5 = file_get_contents("sozlamalar/tugma/tugma5.txt");
-$tugma6 = file_get_contents("sozlamalar/tugma/tugma6.txt");
-$tugma7 = file_get_contents("sozlamalar/tugma/tugma7.txt");
-$tugma8 = file_get_contents("sozlamalar/tugma/tugma8.txt");
-$tugma9 = file_get_contents("sozlamalar/tugma/tugma9.txt");
-$start = file_get_contents("sozlamalar/matn/start.txt");
-$qoida = file_get_contents("sozlamalar/matn/qoida.txt");
-$qollama = file_get_contents("sozlamalar/matn/qollama.txt");
-$kanallar=file_get_contents("sozlamalar/kanal/ch.txt");
-$promo=file_get_contents("sozlamalar/kanal/promo.txt");
-#-----------------------------------#
-$bolim = file_get_contents("sozlamalar/bot/kategoriya.txt");
-$ichkibolim = file_get_contents("sozlamalar/bot/$bolim/ichkibolim.txt");
-$ichki2bolim = file_get_contents("sozlamalar/bot/$ichkibolim/xizmatbolim.txt");
-$type = file_get_contents("sozlamalar/bot/$kategoriya/$ichkibolim/$ichki2bolim/xizmat.txt");
-$narx = file_get_contents("sozlamalar/bot/$kategoriya/$ichkibolim/$ichki2bolim/narx.txt");
-$id = file_get_contents("sozlamalar/bot/$kategoriya/$ichkibolim/$ichki2bolim/id.txt");
-$min = file_get_contents("sozlamalar/bot/$kategoriya/$ichkibolim/$ichki2bolim/min.txt");
-$max = file_get_contents("sozlamalar/bot/$kategoriya/$ichkibolim/$ichki2bolim/max.txt");
-#-----------------------------------#
-$kategoriya = file_get_contents("sozlamalar/hamyon/kategoriya.txt");
-$raqam = file_get_contents("sozlamalar/hamyon/$kategoriya/raqam.txt");
-#-----------------------------------#
+$key1 = file_get_contents("tugma/key1.txt");
+$key2 = file_get_contents("tugma/key2.txt");
+$key3 = file_get_contents("tugma/key3.txt");
+$key4 = file_get_contents("tugma/key4.txt");
+$key5 = file_get_contents("tugma/key5.txt");
+$key6 = file_get_contents("tugma/key6.txt");
 
-$saved = file_get_contents("step/odam.txt");
-$ban = file_get_contents("ban/$fid.txt");
-$statistika = file_get_contents("statistika/obunachi.txt");
+$qator1=file_get_contents("tugma/qator1.txt");
+$qator2=file_get_contents("tugma/qator2.txt");
+$qator3=file_get_contents("tugma/qator3.txt");
+$qator4=file_get_contents("tugma/qator4.txt");
+
+$test = file_get_contents("step/test.txt");
+$test1 = file_get_contents("step/test1.txt");
+$test2 = file_get_contents("step/test2.txt");
+
+$turi = file_get_contents("tizim/turi.txt");
+$addition = file_get_contents("tizim/$test/addition.txt");
+$wallet = file_get_contents("tizim/$test/wallet.txt");
+
+$bolim = file_get_contents("nakrutka/bolim.txt");
+$ichki = file_get_contents("nakrutka/$test/ichki.txt");
+$xizmat = file_get_contents("nakrutka/$test/$test1/xizmat.txt");
+$servis = file_get_contents("nakrutka/$test/$test1/$test2/id.txt");
+
+$by = file_get_contents("pul/$cid.nak");
+$by = file_get_contents("pul/$cid2.nak");
+$pul = file_get_contents("pul/$cid.txt");
+$pul = file_get_contents("pul/$cid2.txt");
+$oplata=file_get_contents("oplata/$cid.txt");
+$oplata=file_get_contents("oplata/$cid2.txt");
+$odam = file_get_contents("odam/$cid.dat");
+$odam = file_get_contents("odam/$cid2.dat");
+$status=file_get_contents("status/$cid.txt");
+$status=file_get_contents("status/$cid2.txt");
+$ban = file_get_contents("ban/$cid.txt");
+$saved=file_get_contents("step/alijonov.txt");
+$narx = file_get_contents("admin/vip.txt");
+$kanal = file_get_contents("admin/kanal.txt");
+$transfer = file_get_contents("admin/transfer.txt");
+$paymeapi = file_get_contents("tizim/paymeapi.txt");
+$paymeparol = file_get_contents("tizim/paymeparol.txt");
+$foiz = file_get_contents("admin/foiz.txt");
+$foiz2 = file_get_contents("admin/foiz2.txt");
+$sayt = file_get_contents("admin/sayt.txt");
+$api = file_get_contents("admin/api.txt");
+$kurs = file_get_contents("admin/kurs.txt");
+$valyuta = file_get_contents("admin/valyuta.txt");
+$referal = file_get_contents("admin/referal.txt");
+$bonus=file_get_contents("bonus/bonmiq.txt");
+$bonusnom=file_get_contents("bonus/bonnom.txt");
+if(!file_exists("buyurtma/id.txt")){
+file_put_contents("buyurtma/id.txt","0");
+}
+$promo=file_get_contents("admin/kanal2.txt");
+$kod = file_get_contents("step/kod.txt");
+$money = file_get_contents("step/money.txt");
 $post = file_get_contents("step/mid.txt");
-$userstep=file_get_contents("step/$fid.txt");
+$time = file_get_contents("bonus/$cid2.txt");
+$user_id = file_get_contents("azo.dat");
+$ban = file_get_contents("ban/$cid.txt");
 
-if($tx){
+$ref1 = file_get_contents("step/$cid2.txt");
+$ref2 = file_get_contents("step/$cid2.id");
+$mt = file_get_contents("step/$cid.mt");
+$mt2 = file_get_contents("step/$cid.mt2");
+mkdir("odam");
+mkdir("pul");
+mkdir("bonus");
+mkdir("status");
+mkdir("tizim");
+mkdir("oplata");
+mkdir("ban");
+mkdir("step");
+mkdir("admin");
+mkdir("tugma");
+mkdir("matn");
+mkdir("buyurtma");
+mkdir("nakrutka");
+
+$panel = json_encode([
+'resize_keyboard'=>true,
+'keyboard'=>[
+[['text'=>"⚙ Asosiy sozlamalar"]],
+[['text'=>"📊 Statistika"],['text'=>"🎟 Promokod"]],
+[['text'=>"📢 Kanallar"],['text'=>"🛍 Xizmatlar"]],
+[['text'=>"🔎 Foydalanuvchini boshqarish"]],
+[['text'=>"🎛 Tugmalar"],['text'=>"⚖️ Foiz qo'yish"]],
+[['text'=>"✉ Xabarnoma"],['text'=>"◀️ Orqaga"]]
+]]);
+
+$asosiy = json_encode([
+'resize_keyboard'=>true,
+'keyboard'=>[
+[['text'=>"*️⃣ Birlamchi sozlamalar"]],
+[['text'=>"📋 Adminlar"],['text'=>"💳 Hamyonlar"]],
+[['text'=>"🔑 API sozlash"],['text'=>"⭐️ Bot dizayni"]],
+[['text'=>"🗄 Boshqarish"]],
+]]);
+
+$menu = json_encode([
+'resize_keyboard'=>true,
+'keyboard'=>[
+[['text'=>"$key1"]],
+[['text'=>"$key4"],['text'=>"$key5"]],
+[['text'=>"$key2"],['text'=>"$key3"]],
+[['text'=>"$key6"]],
+]]);
+
+$menus = json_encode([
+'resize_keyboard'=>true,
+'keyboard'=>[
+[['text'=>"$key1"]],
+[['text'=>"$key4"],['text'=>"$key5"]],
+[['text'=>"$key2"],['text'=>"$key3"]],
+[['text'=>"🗄 Boshqarish"]],
+]
+]);
+
+$back = json_encode([
+'resize_keyboard'=>true,
+'keyboard'=>[
+[['text'=>"◀️ Orqaga"]],
+]
+]);
+
+$boshqarish = json_encode([
+'resize_keyboard'=>true,
+'keyboard'=>[
+[['text'=>"🗄 Boshqarish"]],
+]
+]);
+
+if(in_array($cid,$admin)){
+$menyu = $menus;
+}
+if(in_array($cid,$admin)){
+}else{
+$menyu = $menu;
+}
+
+if(in_array($cid2,$admin)){
+$menyus = $menus;
+}
+if(in_array($cid2,$admin)){
+}else{
+$menyus = $menu;
+}
+
+if($text){
+$ban = file_get_contents("ban/$cid.txt");
 if($ban == "ban"){
-exit();
 }else{
 }}
 
 if($data){
-$ban = file_get_contents("ban/$ccid.txt");
+$ban = file_get_contents("ban/$cid2.txt");
 if($ban == "ban"){
-exit();
 }else{
 }}
 
-$main_menu = json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"$tugma1"]],
-[['text'=>"$tugma3"],['text'=>"$tugma2"]],
-[['text'=>"$tugma4"]],
-[['text'=>"$tugma5"],['text'=>"$tugma6"]],
-]]);
+if(isset($message)){
+$status=file_get_contents("status/$cid.txt");
+if($status == null){
+file_put_contents("status/$cid.txt",'Oddiy');
+}}
 
-$main_menuad = json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"$tugma1"]],
-[['text'=>"$tugma3"],['text'=>"$tugma2"]],
-[['text'=>"$tugma4"]],
-[['text'=>"$tugma5"],['text'=>"$tugma6"]],
-[['text'=>"🗄 Boshqaruv"]],
-]]);
-
-if(in_array($cid,$admin)){
-$menyu = $main_menuad;
-}
-if(in_array($cid,$admin)){
+if(isset($message)){
+$baza = file_get_contents("azo.dat");
+if(mb_stripos($baza,$chat_id) !==false){
 }else{
-$menyu = $main_menu;
-}
-
-if(in_array($ccid,$admin)){
-$menyus = $main_menuad;
-}
-if(in_array($ccid,$admin)){
-}else{
-$menyus = $main_menu;
-}
-
-if($tx=="/start"){
+$txt="\n$chat_id";
+$file=fopen("azo.dat","a");
+fwrite($file,$txt);
+fclose($file);
 bot('sendMessage',[
+'chat_id'=>$builder24,
+'text'=>"<b>👤 Yangi obunachi qo'shildi</b>",
+'parse_mode'=>"html"
+]);
+}}
+
+if(isset($callback)){
+$baza = file_get_contents("azo.dat");
+if(mb_stripos($baza,$callfrid) !==false){
+}else{
+$txt="\n$callfrid";
+$file=fopen("azo.dat","a");
+fwrite($file,$txt);
+fclose($file);
+bot('sendMessage',[
+'chat_id'=>$builder24,
+'text'=>"<b>👤 Yangi obunachi qo'shildi</b>",
+'parse_mode'=>"html"
+]);
+}}
+
+if(isset($message)){
+$by = file_get_contents("pul/$cid.nak");
+$mmd = $by + 0;
+file_put_contents("pul/$cid.nak","$mmd");
+$pul = file_get_contents("pul/$cid.txt");
+$mm = $pul + 0;
+file_put_contents("pul/$cid.txt","$mm");
+$oplata=file_get_contents("oplata/$cid.txt");
+$mms = $oplata + 0;
+file_put_contents("oplata/$cid.txt","$mms");
+$odam = file_get_contents("odam/$cid.dat");
+$kkd = $odam + 0;
+file_put_contents("odam/$cid.dat","$kkd");
+}
+
+if($text == "/start"){
+bot('SendMessage',[
 'chat_id'=>$cid,
-'text'=>"$start",
-'parse_mode'=>"html",
+'text'=>"<b>🖥 Asosiy menyudasiz</b>",
+'parse_mode'=>'html',
 'reply_markup'=>$menyu,
 ]);
 unlink("step/$cid.txt");
@@ -348,43 +452,35 @@ if(strlen($refid)>0 and $refid>0){
 if($refid == $cid){
 bot('SendMessage',[
 'chat_id'=>$cid,
-'text'=>"$start",
+'text'=>"<b>🖥 Asosiy menyudasiz</b>",
 'parse_mode'=>'html',
 'reply_markup'=>$menyu,
 ]);
 }else{
-$statistika = file_get_contents("statistika/obunachi.txt");
-if(mb_stripos($statistika,"$cid")!==false){
+if(mb_stripos($user_id,"$cid")!==false){
 bot('SendMessage',[
 'chat_id'=>$cid,
-'text'=>"$start",
+'text'=>"<b>🖥 Asosiy menyudasiz</b>",
 'parse_mode'=>'html',
 'reply_markup'=>$menyu,
 ]);
 }else{
 bot('SendMessage',[
 'chat_id'=>$refid,
-'text'=>"<b>📳 Sizda yangi taklif mavjud!</b>",
+'text'=>"<b>📳 Sizda yangi taklif mavjud</b>
+
+Agarda ushbu foydalanuvchi hisobini to'ldirsa $referal% miqdori sizga qo'shiladi!",
 'parse_mode'=>'html',
 ]);
-file_put_contents("step/$cid.id","$refid");
-file_put_contents("step/$cid.cid","$refid");
+file_put_contents("odam/$cid.ref","$refid");
 $joinkey = joinchat($cid);
 if($joinkey != null){
-$pulim = file_get_contents("foydalanuvchi/hisob/$refid.txt");
-$a = $pulim + $taklifpul;
-file_put_contents("foydalanuvchi/hisob/$refid.txt","$a");
-$odam = file_get_contents("foydalanuvchi/referal/$refid.txt");
+$odam = file_get_contents("odam/$refid.dat");
 $b = $odam + 1;
-file_put_contents("foydalanuvchi/referal/$refid.txt","$b");
-bot('SendMessage',[
-'chat_id'=>$refid,
-'text'=>"Hisobingizga $taklifpul $pul qo'shildi!",
-'parse_mode'=>'html',
-]);
+file_put_contents("odam/$refid.dat","$b");
 bot('SendMessage',[
 'chat_id'=>$cid,
-'text'=>"$start",
+'text'=>"<b>🖥 Asosiy menyudasiz</b>",
 'parse_mode'=>'html',
 'reply_markup'=>$menyu,
 ]);
@@ -392,2904 +488,731 @@ unlink("step/$cid.id");
 unlink("step/$cid.cid");
 }}}}}
 
-if($data == "check"){
+if($data == "result"){
 bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
 ]);
-if(joinchat($ccid)==true){
-$refid = file_get_contents("step/$ccid.id");
-$cid3 = file_get_contents("step/$ccid.cid");
+if(joinchat($cid2)==true){
+$refid = file_get_contents("step/$cid2.id");
+$cid3 = file_get_contents("step/$cid2.cid");
 if($refid !=$cid3){
 bot('SendMessage',[
-'chat_id'=>$ccid,
-'text'=>"$start",
+'chat_id'=>$cid2,
+'text'=>"<b>🖥 Asosiy menyudasiz</b>",
 'parse_mode'=>'html',
-'reply_markup'=>$menyus,
+'reply_markup'=>$menyu,
 ]);
 }else{
-$pulim = file_get_contents("foydalanuvchi/hisob/$cid3.txt");
-$a = $pulim + $taklifpul;
-$odam = file_get_contents("foydalanuvchi/referal/$cid3.txt");
+$odam = file_get_contents("odam/$cid3.dat");
 $b = $odam + 1;
-file_put_contents("foydalanuvchi/hisob/$cid3.txt","$a");
-file_put_contents("foydalanuvchi/referal/$cid3.txt","$b");
+file_put_contents("odam/$cid3.dat","$b");
 bot('SendMessage',[
-'chat_id'=>$ccid,
-'text'=>"$start",
+'chat_id'=>$cid2,
+'text'=>"<b>🖥 Asosiy menyudasiz</b>",
 'parse_mode'=>'html',
-'reply_markup'=>$menyus,
+'reply_markup'=>$menyu,
 ]);
+}
+unlink("step/$cid2.id");
+unlink("step/$cid2.cid");
+}}
+
+if($text == "◀️ Orqaga" and joinchat($cid)==true){
 bot('SendMessage',[
-'chat_id'=>$cid3,
-'text'=>"Hisobingizga $taklifpul $pul qo'shildi!",
+'chat_id'=>$cid,
+'text'=>"<b>🖥 Asosiy menyudasiz</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$menyu,
+]);
+unlink("step/$cid.bol");
+unlink("step/$cid.ich");
+unlink("step/$cid.xiz");
+unlink("step/$cid.step");
+unlink("step/alijonov.txt");
+}
+
+if($text == "$key4" and joinchat($cid)==true){
+if($status=="VIP"){
+}else{
+$ViP="💎 ViP Status";
+}
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>🔎 Sizning ID raqamingiz:</b> <code>$cid</code>
+
+<b>💵 Umumiy balansingiz:</b> $pul $valyuta
+<b>🗄 Buyurtmalaringiz:</b> $by ta
+<b>🔗 Takliflaringiz soni:</b> $odam ta
+
+<b>Statusingiz:</b> $status
+
+<b>💳 Botga kiritgan pullaringiz:</b> $oplata $valyuta",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"$ViP",'callback_data'=>"vip_shop"],['text'=>"🔁 O'tkazmalar",'callback_data'=>"almashish"]],
+[['text'=>"🎫 Promokod",'callback_data'=>"promokod"]],
+]])
+]);
+unlink("step/$cid.bol");
+unlink("step/$cid.ich");
+unlink("step/$cid.xiz");
+}
+
+if($data == "kabinet"){
+$status=file_get_contents("status/$cid2.txt");
+if($status=="VIP"){
+}else{
+$ViP="💎 ViP Status";
+}
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>🔎 Sizning ID raqamingiz:</b> <code>$cid2</code>
+
+<b>💵 Umumiy balansingiz:</b> $pul $valyuta
+<b>🗄 Buyurtmalaringiz:</b> $by ta
+<b>🔗 Takliflaringiz soni:</b> $odam ta
+
+<b>Statusingiz:</b> $status
+
+<b>💳 Botga kiritgan pullaringiz:</b> $oplata $valyuta",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"$ViP",'callback_data'=>"vip_shop"],['text'=>"🔁 O'tkazmalar",'callback_data'=>"almashish"]],
+[['text'=>"🎫 Promokod",'callback_data'=>"promokod"]],
+]])
+]);
+}
+
+if($data == "vip_shop"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>💎 VIP narxi - $narx $valyuta</b>
+
+Haqiqatdan ham sotib olmoqchimisiz?",
+'parse_mode'=>"html",
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"Sotib olish",'callback_data'=>"shop"]],
+[['text'=>"◀️ Orqaga",'callback_data'=>"kabinet"]],
+]])
+]);
+}
+
+if($data == "shop"){
+if($pul >= $narx){
+file_put_contents("status/$cid2.txt","VIP");
+$mm = $pul - $narx;
+file_put_contents("pul/$cid2.txt",$mm);
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"💎 <b>VIP - statusga muvaffaqiyatli o'tdingiz</b>
+
+Xaridingiz uchun raxmat!",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"◀️ Orqaga",'callback_data'=>"kabinet"]],
+]])
+]);
+}else{
+bot('answerCallbackQuery',[
+'callback_query_id'=>$qid,
+'text'=>"Hisobingizda mablag' yetarli emas!",
+'show_alert'=>true,
+]);
+}}
+
+if($data == "almashish"){
+if($pul>=$transfer){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Qancha mablag'ingizni o'tkazmoqchisiz?</b>
+
+<i>Minimal o'tkazma miqdori:</i> $transfer $valyuta",
+'parse_mode'=>'html',
+'reply_markup'=>$back,
+]);
+file_put_contents("step/$cid2.step",'almashish');
+}else{
+bot('answerCallbackQuery',[
+'callback_query_id'=>$qid,
+'text'=>"Hisobingizda mablag' yetarli emas
+
+Minimal o'tkazma miqdori: $transfer $valyuta",
+'show_alert'=>true,
+]);
+}}
+
+if($step == "almashish"){
+if($text=="◀️ Orqaga"){
+unlink("step/$cid.step");
+}else{
+if(is_numeric($text)=="true"){
+if($text>=$transfer){
+if($pul>=$text){
+file_put_contents("step/alijonov.txt",$text);
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Kerakli foydalanuvchi ID raqamini yuboring:</b>",
 'parse_mode'=>'html',
 ]);
-unlink("step/$ccid.id");
-unlink("step/$ccid.cid");
+file_put_contents("step/$cid.step",'tran');
+}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>🤷🏻‍♂ Hisobingizda mablag' yetarli emas!</b>
+
+Qayta yuboring:",
+'parse_mode'=>'html',
+]);
+}}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Minimal o'tkazma miqdori:</b> $transfer $valyuta
+
+Qayta yuboring:",
+'parse_mode'=>'html',
+]);
+}}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>🤷🏻‍♂ Faqat raqamlardan foydalaning!</b>
+
+<i>Minimal o'tkazma miqdori:</i> $transfer $valyuta",
+'parse_mode'=>'html',
+]);
 }}}
 
-$admin1_menu = json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"⚙ Asosiy sozlamalar"]],
-[['text'=>"📊 Statistika"],['text'=>"🛍 Xizmatlar"]],
-[['text'=>"🔎 Foydalanuvchini boshqarish"]],
-[['text'=>"👤 Adminlar"],['text'=>"🎟 Promokod"]],
-[['text'=>"🎛 Tugmalar"],['text'=>"📑 Matnlar"]],
-[['text'=>"📨 Xabarnoma"],['text'=>"◀️ Orqaga"]],
-]]);
-
-
-if($tx == "⚙ Asosiy sozlamalar" and in_array($cid,$admin)){
-bot('sendMessage',[
+if($step == "tran"){
+if($text=="◀️ Orqaga"){
+unlink("step/$cid.step");
+unlink("step/alijonov.txt");
+}else{
+if(file_exists("pul/$text.txt")){
+$pul = file_get_contents("pul/$cid.txt");
+$miqdor = $pul - $saved;
+file_put_contents("pul/$cid.txt",$miqdor);
+$pul = file_get_contents("pul/$text.txt");
+$miqdor = $pul + $saved;
+file_put_contents("pul/$text.txt",$miqdor);
+bot('SendMessage',[
+'chat_id'=>$text,
+'text'=>"📳 <a href='tg://user?id=$uid'>$uid</a><b> hisobingizga $saved $valyuta o'tkazdi</b>",
+'parse_mode'=>'html',
+'disable_web_page_preview'=>true,
+]);
+bot('SendMessage',[
 'chat_id'=>$cid,
-'text'=>"<b>⚙ Asosiy sozlamalar bo'limiga xush kelibsiz!</b>
-
-<i>Nimani o'zgartiramiz?</i>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"*⃣ Birlamchi sozlamalar"]],
-[['text'=>"📢 Kanallar"],['text'=>"💳 Hamyonlar"]],
-[['text'=>"🎁 Bonus sozlamalari"]],
-[['text'=>"🔑 API sozlash"],['text'=>"⭐️ Bot dizayni"]],
-[['text'=>"🗄 Boshqaruv"]],
-]])
+'text'=>"<b>✅</b> <a href='tg://user?id=$text'>Foydalanuvchiga</a><b> $saved $valyuta o'tkazildi</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$menyu,
 ]);
-}
-
-if($tx=="⭐️ Bot dizayni" and in_array($cid,$admin)){
-bot('sendMessage',[
+unlink("step/$cid.step");
+unlink("step/alijonov.txt");
+}else{
+bot('SendMessage',[
 'chat_id'=>$cid,
-'text'=>"<b>⭐️ Bot dizayni sozlamalari:</b>
+'text'=>"<b>🤷🏻‍♂ Foydalanuvchi topilmadi</b>
 
-<b>1. Bo'limlar qatori</b>: $byson ta
-<b>2. Ichki bo'limlar qatori</b>: $ibyson ta
-<b>3. Xizmatlar qatori</b>: $xizson ta
-<b>4. Hamyonlar qatori</b>: $hamson ta",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"1",'callback_data'=>"byson"],['text'=>"2",'callback_data'=>"ibyson"],['text'=>"3",'callback_data'=>"xizson"],['text'=>"4",'callback_data'=>"hamson"]],
-]])
+Qayta urinib ko'ring:",
+'parse_mode'=>'html',
+]);
+}}}
+
+if($data == "oplata"){
+if($turi == null){
+bot('answerCallbackQuery',[
+'callback_query_id'=>$qid,
+'text'=>"🤷🏻‍♂ To'lov tizimlari qo'shilmagan!",
+'show_alert'=>true,
+]);
+}else{
+$turi = file_get_contents("tizim/turi.txt");
+$more = explode("\n",$turi);
+$soni = substr_count($turi,"\n");
+$keys=[];
+for ($for = 1; $for <= $soni; $for++) {
+$title=str_replace("\n","",$more[$for]);
+$keys[]=["text"=>"$title","callback_data"=>"pay-$title"];
+$keysboard2 = array_chunk($keys, $qator4);
+$payment = json_encode([
+'inline_keyboard'=>$keysboard2,
 ]);
 }
-
-if($data=="botdizayn"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>⭐️ Bot dizayni sozlamalari:</b>
-
-<b>1. Bo'limlar qatori</b>: $byson ta
-<b>2. Ichki bo'limlar qatori</b>: $ibyson ta
-<b>3. Xizmatlar qatori</b>: $xizson ta
-<b>4. Hamyonlar qatori</b>: $hamson ta",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"1",'callback_data'=>"byson"],['text'=>"2",'callback_data'=>"ibyson"],['text'=>"3",'callback_data'=>"xizson"],['text'=>"4",'callback_data'=>"hamson"]],
-]])
-]);
-}
-
-if($data=="byson"){
 bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Bo'limlar nechi qatordan bo'lishini hohlaysiz?</b>",
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>💳 To'lov tizimlaridan birini tanlang:</b>",
 'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"1⃣",'callback_data'=>"tah-byson-1"],['text'=>"2⃣",'callback_data'=>"tah-byson-2"],['text'=>"3⃣",'callback_data'=>"tah-byson-3"]],
-[['text'=>"◀️ Orqaga",'callback_data'=>"botdizayn"]],
-]])
+'reply_markup'=>$payment
+]);
+}}
+
+if($data == "orqa"){
+$turi = file_get_contents("tizim/turi.txt");
+$more = explode("\n",$turi);
+$soni = substr_count($turi,"\n");
+$keys=[];
+for ($for = 1; $for <= $soni; $for++) {
+$title=str_replace("\n","",$more[$for]);
+$keys[]=["text"=>"$title","callback_data"=>"pay-$title"];
+$keysboard2 = array_chunk($keys, $qator4);
+$payment = json_encode([
+'inline_keyboard'=>$keysboard2,
 ]);
 }
-
-if($data=="ibyson"){
 bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Ichki bo'limlar nechi qatordan bo'lishini hohlaysiz?</b>",
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>💳 To'lov tizimlaridan birini tanlang:</b>",
 'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"1⃣",'callback_data'=>"tah-ibyson-1"],['text'=>"2⃣",'callback_data'=>"tah-ibyson-2"],['text'=>"3⃣",'callback_data'=>"tah-ibyson-3"]],
-[['text'=>"◀️ Orqaga",'callback_data'=>"botdizayn"]],
-]])
+'reply_markup'=>$payment
 ]);
 }
 
-if($data=="xizson"){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Xizmatlar nechi qatordan bo'lishini hohlaysiz?</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"3⃣",'callback_data'=>"tah-xizson-3"],['text'=>"4⃣",'callback_data'=>"tah-xizson-4"],['text'=>"5⃣",'callback_data'=>"tah-xizson-5"]],
-[['text'=>"◀️ Orqaga",'callback_data'=>"botdizayn"]],
-]])
-]);
-}
-
-if($data=="hamson"){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Hamyonlar nechi qatordan bo'lishini hohlaysiz?</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"1⃣",'callback_data'=>"tah-hamson-1"],['text'=>"2⃣",'callback_data'=>"tah-hamson-2"],['text'=>"3⃣",'callback_data'=>"tah-hamson-3"]],
-[['text'=>"◀️ Orqaga",'callback_data'=>"botdizayn"]],
-]])
-]);
-}
-
-if(mb_stripos($data, "tah-")!==false){
+if(mb_stripos($data, "pay-")!==false){
 $ex = explode("-",$data);
-$file = $ex[1];
-$son = $ex[2];
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Muvaffaqiyatli o'zgartirildi!</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"◀️ Orqaga",'callback_data'=>"botdizayn"]],
-]])
-]);
-file_put_contents("sozlamalar/tugma/$file.txt","$son");
-}
-
-if($tx=="🎁 Bonus sozlamalari" and in_array($cid,$admin)){
-$bonusbor = file_get_contents("sozlamalar/pul/bonnom.txt","$tugma8");
-if($bonusbor){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>🎁 Kunlik bonus sozlamalari
-
-Bonus miqdori:</b> $bonus $pul
-<b>Bonus olish vaqti:</b> 24 soat
-
-<b>Status:</b> Yoqilgan",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"🎁 Bonus miqdorini sozlash",'callback_data'=>"bonus_miqdor"]],
-[['text'=>"💡 Status (O'chirish)",'callback_data'=>"bonus_ochirish"]],
-]])
-]);
-}else{
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>🎁 Kunlik bonus sozlamalari
-
-Bonus miqdori:</b> $bonus $pul
-<b>Bonus olish vaqti:</b> 24 soat
-
-<b>Status:</b> O'chirilgan",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"🎁 Bonus miqdorini sozlash",'callback_data'=>"bonus_miqdor"]],
-[['text'=>"💡 Status (Yoqish)",'callback_data'=>"bonus_yoqish"]],
-]])
-]);
-}}
-
-if($data=="bonus_ochirish"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Bonus olish uchun ruxsat statusi o'zgartirildi.</b>
-
-Yangi status: O'chirildi",
-'parse_mode'=>"html",
-]);
-unlink("sozlamalar/pul/bonnom.txt");
-}
-
-if($data=="bonus_yoqish"){
-file_put_contents("sozlamalar/pul/bonnom.txt","$tugma8");
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Bonus olish uchun ruxsat statusi o'zgartirildi.</b>
-
-Yangi status: Yoqildi",
-'parse_mode'=>"html",
-]);
-}
-
-if($data=="bonus_miqdor"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>📝 Yangi miqdorini yuboring:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","bonus");
-}
-if($userstep == "bonus"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-file_put_contents("sozlamalar/pul/bonmiq.txt","$tx");
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Muvaffaqiyatli o'zgartirildi!</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}}
-
-if($tx=="🔑 API sozlash" and in_array($cid,$admin)){
-    $api_url = file_get_contents("sozlamalar/pul/api_url.txt");
-    if($api==null){
-        $ap1="<b>kiritilmagan</b>";
-        $apt="🆕 APIni kiritish";
-    }else{
-        $ap1 = "<code>$api</code>"; 
-        $apt="🆕 APIni almashtirish";
-    }
-    
-    // Balansni tekshirish qismi ham yangi URL dan foydalanishi kerak
-    $balance_url = "$api_url?key=$api&action=balance";
-    $balance= json_decode(file_get_contents($balance_url),true);
-    
-    $valyuta=$balance['currency'];
-    if($balance['balance']==null){
-        $balans = "Mavjud emas";
-    }else{
-        $balans = "".$balance['balance']." $valyuta";
-    }
-    
-    bot('sendMessage',[
-        'chat_id'=>$cid,
-        'text'=>"📄<b> API ma'lumotlari:</b>
-➖➖➖➖➖➖➖➖➖➖➖
-<b>🌐 API URL:</b> $api_url
-<b>🔑 API kalit:</b> $ap1
-<b>💰 API balans:</b> $balans
-➖➖➖➖➖➖➖➖➖➖➖",
-        'parse_mode'=>"html",
-        'reply_markup'=>json_encode([
-            'inline_keyboard'=>[
-                [['text'=>"$apt",'callback_data'=>"yangiapi"]],
-                [['text'=>"🌐 API Manzilini o'zgartirish",'callback_data'=>"change_api_url"]],
-            ]
-        ])
-    ]);
-}
-
-
-if($data=="yangiapi"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>@actualseenbot  dan olingan APIni yuboring:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","api");
-}
-
-if($data=="change_api_url"){
-    bot('deleteMessage',[
-        'chat_id'=>$ccid,
-        'message_id'=>$cmid,
-    ]);
-    bot('sendMessage',[
-        'chat_id'=>$ccid,
-        'text'=>"<b>Yangi API manzilini yuboring:</b>
-
-<i>Namuna: https://boshqasayt.com/api/v2</i>",
-        'parse_mode'=>"html",
-        'reply_markup'=>json_encode([
-            'resize_keyboard'=>true,
-            'keyboard'=>[
-                [['text'=>"🗄 Boshqaruv"]],
-            ]
-        ])
-    ]);
-    file_put_contents("step/$ccid.txt","set_api_url");
-}
-
-if($userstep == "set_api_url"){
-    if($tx=="🗄 Boshqaruv"){
-        unlink("step/$cid.txt");
-    }else{
-        if(filter_var($text, FILTER_VALIDATE_URL)){
-            file_put_contents("sozlamalar/pul/api_url.txt", $text);
-            bot('sendMessage',[
-                'chat_id'=>$cid,
-                'text'=>"<b>✅ API manzili o'zgartirildi!</b>",
-                'parse_mode'=>"html",
-                'reply_markup'=>$admin1_menu,
-            ]);
-            unlink("step/$cid.txt");
-        }else{
-            bot('sendMessage',[
-                'chat_id'=>$cid,
-                'text'=>"<b>⚠️ Noto'g'ri URL manzil! Qaytadan yuboring:</b>",
-                'parse_mode'=>"html",
-            ]);
-        }
-    }
-}
-
-
-
-if($userstep == "api"){
-    if($tx=="🗄 Boshqaruv"){
-        unlink("step/$cid.txt");
-    }else{
-        // 1. API manzilini fayldan o'qiymiz
-        $api_url = file_get_contents("sozlamalar/pul/api_url.txt");
-        
-        // 2. Siz yuborgan API kalit ($tx) bilan o'sha manzildan balansni tekshiramiz
-        $balance = json_decode(file_get_contents("$api_url?key=$tx&action=balance"),true);
-        $valyuta = $balance['currency'];
-        
-        if($balance['balance'] == null){
-            // Agar balans bo'sh bo'lsa, demak kalit xato yoki sayt javob bermayapti
-            bot('sendMessage',[
-                'chat_id'=>$cid,
-                'text'=>"<b>⚠️ API kalit noto'g'ri!</b>\n\nIltimos, ushbu manzildan olingan kalitni yuboring:\n$api_url",
-                'parse_mode'=>"html",
-            ]);
-        }else{
-            // Agar balans aniqlansa, demak API kalit to'g'ri va uni saqlaymiz
-            file_put_contents("sozlamalar/pul/api.txt","$tx");
-            bot('sendMessage',[
-                'chat_id'=>$cid,
-                'text'=>"<b>✅ API kalit qabul qilindi!
-
-💰 API balans:</b> ".$balance['balance']." $valyuta",
-                'parse_mode'=>"html",
-                'reply_markup'=>$admin1_menu,
-            ]);
-            unlink("step/$cid.txt");
-        }
-    }
-}
-
-if($tx == "🗄 Boshqaruv" and in_array($cid,$admin)){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>🗄 Boshqaruv paneliga xush kelibsiz!</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$admin1_menu
-]);
-unlink("step/$cid.txt");
-}
-
-if($text == "👤 Adminlar"){
-if(in_array($cid,$admin)){
-if($cid == $builder24){
-bot('SendMessage',[
-'chat_id'=>$builder24,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"📑 Ro'yxatni ko'rish",'callback_data'=>"list"]],
-[['text'=>"➕ Qo'shish",'callback_data'=>"add"],['text'=>"🗑 O'chirish",'callback_data'=>"remove"]],
-]])
-]);
-}else{
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"📑 Ro'yxatni ko'rish",'callback_data'=>"list"]],
-]])
-]);
-}}}
-
-if($data == "admins"){
-if($ccid == $builder24){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);	
-bot('SendMessage',[
-'chat_id'=>$builder24,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"📑 Ro'yxatni ko'rish",'callback_data'=>"list"]],
-[['text'=>"➕ Qo'shish",'callback_data'=>"add"],['text'=>"🗑 O'chirish",'callback_data'=>"remove"]],
-]])
-]);
-}else{
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);	
-bot('SendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"📑 Ro'yxatni ko'rish",'callback_data'=>"list"]],
-]])
-]);
-}}
-
-if($data == "list"){
-$admins=file_get_contents("statistika/admins.txt");
+$turi = $ex[1];
+$addition = file_get_contents("tizim/$turi/addition.txt");
+$wallet = file_get_contents("tizim/$turi/wallet.txt");
 bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>📑 Botdagi adminlar ro'yxati:</b>
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>📋 To'lov tizimi:</b> $turi
 
-$admins",
-'parse_mode'=>'html',
+<b>💳 Hamyon:</b> <code>$wallet</code>
+<b>📝 Izoh:</b> <code>$cid2</code>
+
+$addition",
+'parse_mode'=>"html",
 'reply_markup'=>json_encode([
 'inline_keyboard'=>[
-[['text'=>"◀️ Orqaga",'callback_data'=>"admins"]],
+[['text'=>"✅ To'lov qildim",'callback_data'=>"money-$turi"]],
+[['text'=>"◀️ Orqaga",'callback_data'=>"orqa"]],
 ]])
 ]);
 }
 
-if($data == "add"){
+if(mb_stripos($data, "money-")!==false){
+$ex = explode("-",$data);
+$turi = $ex[1];
 bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
 ]);
 bot('SendMessage',[
-'chat_id'=>$builder24,
-'text'=>"*Kerakli ID raqamni kiriting:*",
-'parse_mode'=>'MarkDown',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt",'add-admin');
+'chat_id'=>$cid2,
+'text'=>"💵 <b>To'lov miqdorini kiriting:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$back,
+]);	file_put_contents("step/$cid2.step","oplata-$turi");
 }
 
-if($userstep=="add-admin" and $cid == $builder24){
-if($tx=="🗄 Boshqarish"){
+if(mb_stripos($step, "oplata-")!==false){
+$ex = explode("-",$step);
+$turi = $ex[1];
+if($text=="◀️ Orqaga"){
 unlink("step/$cid.step");
 }else{
 if(is_numeric($text)=="true"){
-if($text != $builder24){
-file_put_contents("statistika/admins.txt","$admins\n$text");
 bot('SendMessage',[
-'chat_id'=>$builder24,
-'text'=>"✅ *$text* admin qilib tayinlandi!",
-'parse_mode'=>'MarkDown',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-bot('SendMessage',[
-'chat_id'=>$text,
-'text'=>"<b>Admin qilib tayinlandingiz!</b>",
+'chat_id'=>$cid,
+'text'=>"🧾 <b>To'lovingizni chek yoki skreenshotini shu yerga yuboring:</b>",
 'parse_mode'=>'html',
-'reply_markup'=>$main_menuad,
 ]);
+file_put_contents("step/$cid.step","rasm-$text-$turi");
 }else{
 bot('SendMessage',[
 'chat_id'=>$cid,
-'text'=>"<b>Kerakli ID raqamni kiriting:</b>",
-'parse_mode'=>'html',
-]);
-}}else{
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Kerakli ID raqamni kiriting:</b>",
+'text'=>"💵 <b>To'lov miqdorini kiriting:</b>",
 'parse_mode'=>'html',
 ]);
 }}}
 
-if($data == "remove"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('SendMessage',[
-'chat_id'=>$builder24,
-'text'=>"<b>Kerakli ID raqamni kiriting:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt",'remove-admin');
-}
-
-if($userstep == "remove-admin" and $cid == $builder24){
-if($tx=="🗄 Boshqarish"){
+if(mb_stripos($step, "rasm-")!==false){
+$ex = explode("-",$step);
+$miqdor = $ex[1];
+$turi = $ex[2];
+if($text=="◀️ Orqaga"){
 unlink("step/$cid.step");
 }else{
-if(is_numeric($text)=="true"){
-if($text != $builder24){
-$files=file_get_contents("statistika/admins.txt");
-$file = str_replace("\n".$text."","",$files);
-file_put_contents("statistika/admins.txt",$file);
-bot('SendMessage',[
+bot('forwardMessage',[
 'chat_id'=>$builder24,
-'text'=>"✅ *$text* adminlikdan olindi!",
-'parse_mode'=>'MarkDown',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-bot('SendMessage',[
-'chat_id'=>$text,
-'text'=>"<b>Adminlikdan olindingiz!</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$main_menu,
-]);
-}else{
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Kerakli ID raqamni kiriting:</b>",
-'parse_mode'=>'html',
-]);
-}}else{
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Kerakli ID raqamni kiriting:</b>",
-'parse_mode'=>'html',
-]);
-}}}
-
-if($data == "oddiy_xabar" and in_array($ccid,$admin)){
-$odam=substr_count($statistika,"\n");
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>$odam ta foydalanuvchiga yuboriladigan xabar matnini yuboring:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","oddiy");
-}
-if($userstep=="oddiy"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-bot('sendmessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Xabar yuborish boshlandi!</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$admin1_menu,
-]);
-$odam = explode("\n",$statistika);
-foreach($odam as $odamlar){
-$usr=bot("sendMessage",[
-'chat_id'=>$odamlar,
-'text'=>$text,
-'parse_mode'=>'HTML'
-]);
-unlink("step/$cid.txt");
-}}}
-if($usr){
-$odam=substr_count($statistika,"\n");
-bot("sendmessage",[
-'chat_id'=>$admin,
-'text'=>"<b>$odam ta foydalanuvchiga muvaffaqiyatli yuborildi</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}
-
-if($data =="forward_xabar" and in_array($ccid,$admin)){
-$odam=substr_count($statistika,"\n");
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>$odam ta foydalanuvchiga yuboriladigan xabarni forward shaklida yuboring:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","forward");
-}
-if($userstep=="forward"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-bot('sendmessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Xabar yuborish boshlandi!</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$admin1_menu,
-]);
-$odam = explode("\n",$statistika);
-foreach($odam as $odamlar){
-$fors=bot("forwardMessage",[
 'from_chat_id'=>$cid,
-'chat_id'=>$odamlar,
 'message_id'=>$mid,
 ]);
-unlink("step/$cid.txt");
-}}}
-if($fors){
-$odam=substr_count($statistika,"\n");
-bot("sendmessage",[
-'chat_id'=>$admin,
-'text'=>"<b>$odam ta foydalanuvchiga muvaffaqiyatli yuborildi</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}
-
-if($tx=="📨 Xabarnoma" and in_array($cid,$admin)){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>📨 Yuboriladigan xabar turini tanlang:</b>",
-'parse_mode'=>"html",
-'reply_markup'=> json_encode([
-'inline_keyboard'=>[
-[['text'=>"Oddiy xabar",'callback_data'=>"oddiy_xabar"]],
-[['text'=>"Forward xabar",'callback_data'=>"forward_xabar"]],
-]])
-]);
-}
-if($tx == "🛍 Xizmatlar" and in_array($cid,$admin)){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"📁 Bo'limlarni sozlash",'callback_data'=>"kategoriya"]],
-[['text'=>"📁 Ichki bo'lim sozlash",'callback_data'=>"ichkibolim"]],
-[['text'=>"🛍 Xizmatlarni sozlash",'callback_data'=>"xizmatlar"]],
-[['text'=>"🗑 Barchasini tozalash",'callback_data'=>"toza"]],
-]])
-]);
-}
-
-if($data == "bbosh"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"📁 Bo'limlarni sozlash",'callback_data'=>"kategoriya"]],
-[['text'=>"📁 Ichki bo'lim sozlash",'callback_data'=>"ichkibolim"]],
-[['text'=>"🛍 Xizmatlarni sozlash",'callback_data'=>"xizmatlar"]],
-[['text'=>"🗑 Barchasini tozalash",'callback_data'=>"toza"]],
-]])
-]);
-}
-
-if($data == "toza"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>⚠️ Ushbu holatda xizmatlarni tozalasangiz, keyinchalik qayta tiklab bo'lmaydi</b>
-
-Shu bilan birgalikda bo'lim, ichki bo'lim va xizmatlar barchasi o'chiriladi!",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"✅ Tasdiqlash",'callback_data'=>"barcha2"]],
-[['text'=>"◀️ Orqaga",'callback_data'=>"bbosh"]],
-]])
-]);
-}
-
-if($data=="barcha2"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Barcha malumotlar tozlalandi</b>",
-'parse_mode'=>"html",
-]);
-deleteFolder("sozlamalar/bot/");
-}
-
-if($data == "kategoriya"){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"➕ Bo'lim qo'shish",'callback_data'=>"AdKat"]],
-[['text'=>"📝 Tahrirlash",'callback_data'=>"tahrirlash"]],
-[['text'=>"🗑 O'chirish",'callback_data'=>"ochirish"]],
-[['text'=>"◀️ Orqaga",'callback_data'=>"bbosh"]]
-]])
-]);
-}
-
-if($data == "AdKat"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Yangi bo'lim nomini yuboring</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt",'AdKat');
-}
-
-if($userstep == "AdKat"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-$bolim = file_get_contents("sozlamalar/bot/kategoriya.txt");
-file_put_contents("sozlamalar/bot/kategoriya.txt","$bolim\n$text");
-mkdir("sozlamalar/bot/$text");
 bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>$text - nomli bo'lim qo'shildi</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}}
-
-if($data == "tahrirlash"){
-$more = explode("\n",$bolim);
-$soni = substr_count($bolim,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$keys[]=["text"=>"$more[$for]","callback_data"=>"tahrir-".$more[$for]];
-$keysboard2 = array_chunk($keys, $byson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"kategoriya"]];
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-if($bolim != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"🔒 Bo'limlar mavjud emas!",
-'show_alert'=>true,
-]);
-}}
-
-if(mb_stripos($data, "tahrir-")!==false){
-$kat = explode("-",$data)[1];
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Yangi qiymatni yuboring:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","tahrir-$kat");
-}
-
-if(mb_stripos($userstep, "tahrir-")!==false){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-$kat = explode("-",$userstep)[1];
-$a = str_replace($kat,$text,$bolim);
-file_put_contents("sozlamalar/bot/kategoriya.txt",$a);
-rename("sozlamalar/bot/$kat","sozlamalar/bot/$text");
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Muvaffaqiyatli o'zgartirildi.</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}}
-
-if($data == "ochirish"){
-$more = explode("\n",$bolim);
-$soni = substr_count($bolim,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$keys[]=["text"=>"$more[$for]","callback_data"=>"delKat-".$more[$for]];
-$keysboard2 = array_chunk($keys, $byson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"kategoriya"]];
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-if($bolim != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>🗑 O'chirish uchun bo'limni tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"🔒 Bo'limlar mavjud emas!",
-'show_alert'=>true,
-]);
-}}
-
-if(mb_stripos($data, "delKat-")!==false){
-$ex = explode("-",$data);
-$kat = $ex[1];
-$k = str_replace("\n".$kat."","",$bolim);
-file_put_contents("sozlamalar/bot/kategoriya.txt",$k);
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>$kat - nomli bo'lim o'chirildi!</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-deleteFolder("sozlamalar/bot/$kat");
-}
-
-if($data == "ichkibolim"){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"➕ Ichki bo'lim qo'shish",'callback_data'=>"Adichki"]],
-[['text'=>"📝 Tahrirlash",'callback_data'=>"tahririchki"]],
-[['text'=>"🗑 O'chirish",'callback_data'=>"ochirishichki"]],
-[['text'=>"◀️ Orqaga",'callback_data'=>"bbosh"]]
-]])
-]);
-}
-
-if($data == "Adichki"){
-$more = explode("\n",$bolim);
-$soni = substr_count($bolim,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$ichida = file_get_contents("sozlamalar/bot/".$more[$for]."/ichkibolim.txt");
-$ta = substr_count($ichida,"\n");
-$keys[]=["text"=>"$more[$for] $ta->","callback_data"=>"adim-".$more[$for]];
-$keysboard2 = array_chunk($keys, $byson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"ichkibolim"]];
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-if($bolim != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"🔒 Bo'limlar mavjud emas!",
-'show_alert'=>true,
-]);
-}}
-
-if(mb_stripos($data, "adim-")!==false){
-$ex = explode("-",$data);
-$kat = $ex[1];
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>$kat tanlandi</b>
-
-📝 Ichki bo'lim nomini yuboring:",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","ichkibolimnomi-$kat");
-}
-
-if(mb_stripos($userstep, "ichkibolimnomi-")!==false){
-$ex = explode("-",$userstep);
-$kat = $ex[1];
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-$royxat = file_get_contents("sozlamalar/bot/$kat/ichkibolim.txt");
-file_put_contents("sozlamalar/bot/$kat/ichkibolim.txt","$royxat\n$text");
-mkdir("sozlamalar/bot/$kat/$text");
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>$text - nomli ichki bo'lim qo'shildi</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}}
-
-if($data == "tahririchki"){
-$more = explode("\n",$bolim);
-$soni = substr_count($bolim,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$ichida = file_get_contents("sozlamalar/bot/".$more[$for]."/ichkibolim.txt");
-$ta = substr_count($ichida,"\n");
-$keys[]=["text"=>"$more[$for] $ta->","callback_data"=>"tahmich-".$more[$for]];
-$keysboard2 = array_chunk($keys, $byson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"ichkibolim"]];
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-if($bolim != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"🔒 Bo'limlar mavjud emas!",
-'show_alert'=>true,
-]);
-}}
-
-if(mb_stripos($data, "tahmich-")!==false){
-$ex = explode("-",$data);
-$kat = $ex[1];
-file_put_contents("step/$ccid.bol","$kat");
-$ichkibolim = file_get_contents("sozlamalar/bot/$kat/ichkibolim.txt");
-$more = explode("\n",$ichkibolim);
-$soni = substr_count($ichkibolim,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$keys[]=["text"=>"$more[$for]","callback_data"=>"tahichk-".$more[$for]];
-$keysboard2 = array_chunk($keys, $ibyson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"tahririchki"]];
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-if($ichkibolim != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>📝 Tahrirlash uchun birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"🔒 Ichki bo'limlar mavjud emas!",
-'show_alert'=>true,
-]);
-}}
-
-if(mb_stripos($data, "tahichk-")!==false){
-$ex = explode("-",$data);
-$roy = $ex[1];
-$kat = file_get_contents("step/$ccid.bol");
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Yangi qiymatni yuboring:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","tahririchki2-$kat-$roy");
-}
-
-if(mb_stripos($userstep, "tahririchki2-")!==false){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-$kat = explode("-",$userstep)[1];
-$roy = explode("-",$userstep)[2];
-$ichki=file_get_contents("sozlamalar/bot/$kat/ichkibolim.txt");
-$a = str_replace("$roy", "$text", $ichki);
-file_put_contents("sozlamalar/bot/$kat/ichkibolim.txt",$a);
-rename("sozlamalar/bot/$kat/$roy","sozlamalar/bot/$kat/$text");
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Muvaffaqiyatli o'zgartirildi.</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}}
-
-if($data == "ochirishichki"){
-$more = explode("\n",$bolim);
-$soni = substr_count($bolim,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$ichida = file_get_contents("sozlamalar/bot/".$more[$for]."/ichkibolim.txt");
-$ta = substr_count($ichida,"\n");
-$keys[]=["text"=>"$more[$for] $ta->","callback_data"=>"deltanich-".$more[$for]];
-$keysboard2 = array_chunk($keys, $byson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"ichkibolim"]];
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-if($bolim != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"🔒 Bo'limlar mavjud emas!",
-'show_alert'=>true,
-]);
-}}
-
-if(mb_stripos($data, "deltanich-")!==false){
-$ex = explode("-",$data);
-$kat = $ex[1];
-file_put_contents("step/$ccid.bol","$kat");
-$royxat = file_get_contents("sozlamalar/bot/$kat/ichkibolim.txt");
-$more = explode("\n",$royxat);
-$soni = substr_count($royxat,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$title=str_replace("\n","",$more[$for]);
-$keys[]=["text"=>"$more[$for]","callback_data"=>"deleteich-".$more[$for]];
-$keysboard2 = array_chunk($keys, $ibyson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"ochirishichki"]];
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-if($bolim != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>🗑 O'chirish uchun birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"🔒 Ichki bo'limlar mavjud emas!",
-'show_alert'=>true,
-]);
-}}
-
-if(mb_stripos($data, "deleteich-")!==false){
-$ex = explode("-",$data);
-$roy = $ex[1];
-$kat = file_get_contents("step/$ccid.bol");
-$royxat = file_get_contents("sozlamalar/bot/$kat/ichkibolim.txt");
-$k = str_replace("\n".$roy."","",$royxat);
-file_put_contents("sozlamalar/bot/$kat/ichkibolim.txt",$k);
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>$roy - nomli ichki bo'lim o'chirildi</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-deleteFolder("sozlamalar/bot/$kat/$roy");
-}
-
-if($data == "xizmatlar"){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"➕ Xizmat qo'shish",'callback_data'=>"adxiz"]],
-[['text'=>"📝 Tahrirlash",'callback_data'=>"xiztah"]],
-[['text'=>"🗑 O'chirish",'callback_data'=>"xizochir"]],
-[['text'=>"◀️ Orqaga",'callback_data'=>"bbosh"]]
-]])
-]);
-}
-
-if($data == "xizochir"){
-$more = explode("\n",$bolim);
-$soni = substr_count($bolim,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$ichida = file_get_contents("sozlamalar/bot/".$more[$for]."/ichkibolim.txt");
-$ta = substr_count($ichida,"\n");
-$keys[]=["text"=>"$more[$for] $ta->","callback_data"=>"xizdel-".$more[$for]];
-$keysboard2 = array_chunk($keys, $byson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"xizmatlar"]];
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-if($bolim != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"🔒 Bo'limlar mavjud emas!",
-'show_alert'=>true,
-]);
-}}
-
-if(mb_stripos($data, "xizdel-")!==false){
-$ex = explode("-",$data);
-$kat = $ex[1];
-$royxat = file_get_contents("sozlamalar/bot/$kat/ichkibolim.txt");
-file_put_contents("step/$ccid.bol","$kat");
-$more = explode("\n",$royxat);
-$soni = substr_count($royxat,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$ichida = file_get_contents("sozlamalar/bot/$kat/".$more[$for]."/xizmatbolim.txt");
-$ta = substr_count($ichida,"\n");
-$keys[]=["text"=>"$more[$for] $ta->","callback_data"=>"delochir-".$more[$for]];
-$keysboard2 = array_chunk($keys, $ibyson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"xizochir"]];
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-if($royxat != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"🔒 Ichki bo'limlar mavjud emas!",
-'show_alert'=>true,
-]);
-}}
-
-if(mb_stripos($data, "delochir-")!==false){
-$ex = explode("-",$data);
-$roy = $ex[1];
-$kat = file_get_contents("step/$ccid.bol");
-file_put_contents("step/$ccid.ich","$roy");
-$royxat = file_get_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt");
-$ids = explode("\n",$royxat);
-$soni = substr_count($royxat,"\n");
-foreach($ids as $id){
-$key = [];
-$text = "";
-for ($for = 1; $for <= $soni; $for++) {
-$text .= "<b>$for</b> ".$ids[$for]."\n";
-$key[]=["text"=>"$for","callback_data"=>"deletexiz-".$ids[$for]];
-}
-$keysboard2 = array_chunk($key, $xizson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"xizdel-$kat"]];
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-if($royxat != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"🗑 <b>O'chiriladigan xizmatni tanlang:</b>
-
-$text",
-'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"🔒 Ichki bo'limlar mavjud emas!",
-'show_alert'=>true,
-]);
-}}
-
-if(mb_stripos($data, "deletexiz-")!==false){
-$ex = explode("-",$data);
-$xiz = $ex[1];
-$roy = file_get_contents("step/$ccid.ich");
-$kat = file_get_contents("step/$ccid.bol");
-$royxat = file_get_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt");
-$k = str_replace("\n".$xiz."","",$royxat);
-file_put_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt",$k);
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>$xiz - nomli xizmat o'chirildi</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-deleteFolder("sozlamalar/bot/$kat/$roy/$xiz");
-}
-
-// 1. ASOSIY BO'LIMLAR RO'YXATI
-if($data == "xiztah"){
-    $more = explode("\n", $bolim);
-    $soni = substr_count($bolim, "\n");
-    $keys = [];
-    for ($for = 1; $for <= $soni; $for++) {
-        $kat_nomi = trim($more[$for]);
-        if(!empty($kat_nomi)){
-            $ichida = file_get_contents("sozlamalar/bot/".$kat_nomi."/ichkibolim.txt");
-            $ta = substr_count($ichida, "\n");
-            $keys[] = ["text" => "$kat_nomi $ta->", "callback_data" => "tanla-" . $kat_nomi];
-        }
-    }
-    $keysboard2 = array_chunk($keys, $byson);
-    $keysboard2[] = [['text' => "◀️ Orqaga", 'callback_data' => "xizmatlar"]];
-    $key = json_encode(['inline_keyboard' => $keysboard2]);
-
-    if($bolim != null){
-        bot('editMessageText',[
-            'chat_id'=>$ccid,
-            'message_id'=>$cmid,
-            'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-            'parse_mode'=>'html',
-            'reply_markup'=>$key,
-        ]);
-    } else {
-        bot('answerCallbackQuery',[
-            'callback_query_id'=>$callid,
-            'text'=>"🔒 Bo'limlar mavjud emas!",
-            'show_alert'=>true,
-        ]);
-    }
-} // <--- SHU YERDA BLOCK YOPILISHI KERAK EDI
-
-// 2. ICHKI BO'LIMLARNI CHIQARISH (Kategoriya tanlanganda)
-if(mb_stripos($data, "tanla-") !== false){
-    $ex = explode("-", $data);
-    $kat = $ex[1];
-    file_put_contents("step/$ccid.bol", $kat); // Kategoriya saqlandi
-    
-    $royxat = file_get_contents("sozlamalar/bot/$kat/ichkibolim.txt");
-    $more = explode("\n", $royxat);
-    $soni = substr_count($royxat, "\n");
-    $keys = [];
-    for ($for = 1; $for <= $soni; $for++) {
-        $ichki_nomi = trim($more[$for]);
-        if(!empty($ichki_nomi)){
-            $keys[] = ["text" => "$ichki_nomi", "callback_data" => "tanxiz-" . $ichki_nomi];
-        }
-    }
-    $keysboard2 = array_chunk($keys, $ibyson);
-    $keysboard2[] = [['text' => "◀️ Orqaga", 'callback_data' => "xiztah"]];
-    $key = json_encode(['inline_keyboard' => $keysboard2]);
-
-    if($royxat != null){
-        bot('editMessageText',[
-            'chat_id'=>$ccid,
-            'message_id'=>$cmid,
-            'text'=>"<b>$kat:</b> Ichki bo'limni tanlang:",
-            'parse_mode'=>'html',
-            'reply_markup'=>$key,
-        ]);
-    } else {
-        bot('answerCallbackQuery',[
-            'callback_query_id'=>$callid,
-            'text'=>"🔒 Ichki bo'limlar mavjud emas!",
-            'show_alert'=>true,
-        ]);
-    }
-}
-
-// 3. ANIQ XIZMATLARNI RO'YXATI
-if(mb_stripos($data, "tanxiz-") !== false){
-    $ex = explode("-", $data);
-    $kat = file_get_contents("step/$ccid.bol");
-    $roy = $ex[1]; // Tanlangan ichki bo'lim
-    file_put_contents("step/$ccid.ich", $roy); // Ichki bo'lim saqlandi
-
-    $royxat = file_get_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt");
-    $ids = explode("\n", $royxat);
-    $soni = substr_count($royxat, "\n");
-    
-    $key = [];
-    $text = "";
-    for ($for = 1; $for <= $soni; $for++) {
-        $xiz_nomi = trim($ids[$for]);
-        if(!empty($xiz_nomi)){
-            $text .= "<b>$for.</b> $xiz_nomi\n";
-            $key[] = ["text" => "$for", "callback_data" => "tahrirla-" . $xiz_nomi];
-        }
-    }
-    $keysboard2 = array_chunk($key, 5); // Xizmatlar raqami 5 tadan teriladi
-    $keysboard2[] = [['text' => "◀️ Orqaga", 'callback_data' => "tanla-$kat"]];
-    $key_final = json_encode(['inline_keyboard' => $keysboard2]);
-
-    if($royxat != null){
-        bot('editMessageText',[
-            'chat_id'=>$ccid,
-            'message_id'=>$cmid,
-            'text'=>"📋 <b>$roy xizmatlari:</b>\n\n$text",
-            'parse_mode'=>'html',
-            'reply_markup'=>$key_final,
-        ]);
-    }
-}
-
-if(mb_stripos($data, "tahrirla-")!==false){
-$ex = explode("-",$data);
-$kat = file_get_contents("step/$ccid.bol");
-$roy = file_get_contents("step/$ccid.ich");
-$xiz = $ex[1];
-$xizmat = file_get_contents("sozlamalar/bot/$kat/$roy/$xiz/xizmat.txt");
-$narx = file_get_contents("sozlamalar/bot/$kat/$roy/$xiz/narx.txt");
-$min = file_get_contents("sozlamalar/bot/$kat/$roy/$xiz/min.txt");
-$max = file_get_contents("sozlamalar/bot/$kat/$roy/$xiz/max.txt");
-$id = file_get_contents("sozlamalar/bot/$kat/$roy/$xiz/id.txt");
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b><u>🔑 Xizmat IDsi:</u></b> $id
-
-<b><u>📝 Xizmat nomi:</u></b> $xizmat
-<b><u>💵 Narxi (1000x):</u></b> $narx $pul
-
-<b><u>🔽 Minimal buyurtma:</u></b> $min ta
-<b><u>🔼 Maksimal buyurtma:</u></b> $max ta",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"📝 Nomni tahrirlash",'callback_data'=>"nomi-".$xiz]],
-[['text'=>"📝 IDni tahrirlash",'callback_data'=>"editBot-id-".$xiz],['text'=>"📝 Narxni tahrirlash",'callback_data'=>"editBot-narx-".$xiz]],
-[['text'=>"📝 Min. tahrirlash",'callback_data'=>"editBot-min-".$xiz],['text'=>"📝 Max. tahrirlash",'callback_data'=>"editBot-max-".$xiz]],
-[['text'=>"◀️ Orqaga",'callback_data'=>"tanxiz-$kat-$roy"]]
-]])
-]);
-}
-
-if(mb_stripos($data, "nomi-")!==false){
-$kat = file_get_contents("step/$ccid.bol");
-$roy = file_get_contents("step/$ccid.ich");
-$xiz = explode("-",$data)[1];
-$holat = file_get_contents("sozlamalar/bot/$kat/$roy/$xiz/xizmat.txt");
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Hozirgi holat:</b> $holat
-
-<i>Yangi qiymatni yuboring:</i>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","editnomi-xizmat-$kat-$roy-$xiz");
-}
-
-if(mb_stripos($userstep, "editnomi-")!==false){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-$ex = explode("-",$userstep)[1];
-$kat = explode("-",$userstep)[2];
-$roy = explode("-",$userstep)[3];
-$xiz = explode("-",$userstep)[4];
-$ichki=file_get_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt");
-$a = str_replace("$roy", "$text", $ichki);
-file_put_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt",$a);
-file_put_contents("sozlamalar/bot/$kat/$roy/$xiz/xizmat.txt",$text);
-rename("sozlamalar/bot/$kat/$roy/$xiz","sozlamalar/bot/$kat/$roy/$text");
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Muvaffaqiyatli o'zgartirildi.</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}}
-
-if(mb_stripos($data, "editBot-")!==false){
-$ex = explode("-",$userstep)[1];
-$kat = file_get_contents("step/$ccid.bol");
-$roy = file_get_contents("step/$ccid.ich");
-$xiz = explode("-",$userstep)[2];
-$holat = file_get_contents("sozlamalar/bot/$kat/$roy/$xiz/$ex.txt");
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Hozirgi holat:</b> $holat
-
-<i>Yangi qiymatni yuboring:</i>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","editBot-$ex-$kat-$roy-$xiz");
-}
-
-if(mb_stripos($userstep, "editBot-")!==false){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-if(isset($text)){
-$ex = explode("-",$userstep)[1];
-$kat = explode("-",$userstep)[2];
-$roy = explode("-",$userstep)[3];
-$xiz = explode("-",$userstep)[4];
-file_put_contents("sozlamalar/bot/$kat/$roy/$xiz/$ex.txt",$text);
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Muvaffaqiyatli o'zgartirildi.</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}else{
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>⚠️ Faqat harflardan foydalaning!</b>",
-'parse_mode'=>'html',
-]);
-}}}
-
-if($data == "adxiz"){
-$bolim = file_get_contents("sozlamalar/bot/kategoriya.txt");
-$more = explode("\n",$bolim);
-$soni = substr_count($bolim,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$ichida = file_get_contents("sozlamalar/bot/".$more[$for]."/ichkibolim.txt");
-$ta = substr_count($ichida,"\n");
-$keys[]=["text"=>"$title $ta->","callback_data"=>"addb-".$more[$for]];
-$keysboard2 = array_chunk($keys, $byson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"bbosh"]];
-$AdBot = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-
-if($bolim != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$AdBot,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"🔒 Bo'limlar mavjud emas!",
-'show_alert'=>true,
-]);
-}}
-
-if(mb_stripos($data, "addb-")!==false){
-$ex = explode("-",$data);
-$kat = $ex[1];
-$bolim = file_get_contents("sozlamalar/bot/$kat/ichkibolim.txt");
-$more = explode("\n",$bolim);
-$soni = substr_count($bolim,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$ichida = file_get_contents("sozlamalar/bot/$kat/".$more[$for]."/xizmatbolim.txt");
-$ta = substr_count($ichida,"\n");
-$keys[]=["text"=>"$more[$for] $ta->","callback_data"=>"addxiz-".$more[$for]."-".$kat];
-$keysboard2 = array_chunk($keys, $ibyson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"xizmatlar"]];
-$AdBot = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-
-if($bolim != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$AdBot,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"🔒 Ichki bo'limlar mavjud emas!",
-'show_alert'=>true,
-]);
-}}
-
-if(mb_stripos($data, "addxiz-")!==false){
-$ex = explode("-",$data);
-$roy =$ex[1];
-$kat = $ex[2];
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>✅ Ichki bo'lim tanlandi</b>
-
-📝 Xizmat nomini yuboring:",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","xizmatnomi-$kat-$roy");
-}
-
-if(mb_stripos($userstep, "xizmatnomi-")!==false){
-$ex = explode("-",$userstep);
-$kat = $ex[1];
-$roy =$ex[2];
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-$royxat = file_get_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt");
-file_put_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt","$royxat\n$text");
-mkdir("sozlamalar/bot/$kat/$roy/$text");
-file_put_contents("sozlamalar/bot/$kat/$roy/$text/xizmat.txt",$text);
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"$text <b>nomi qabul qilindi.</b>
-
-📝 Xizmat ID raqamini yuboring:",
-'parse_mode'=>'html',
-]);
-file_put_contents("step/$cid.txt","xizmatid-$kat-$roy-$text");
-}}
-
-if(mb_stripos($userstep, "xizmatid-")!==false){
-$ex = explode("-",$userstep);
-$kat = $ex[1];
-$roy = $ex[2];
-$xiz = $ex[3];
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-unlink("sozlamalar/bot/$kat/$roy/$xiz");
-$royxat = file_get_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt");
-$k = str_replace("\n".$xiz."","",$royxat);
-file_put_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt",$k);
-}else{
-if(is_numeric($text)==true){
-file_put_contents("sozlamalar/bot/$kat/$roy/$xiz/id.txt",$text);
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>$text qabul qilindi</b>
-
-📝 Xizmat narxini yuboring:",
-'parse_mode'=>'html',
-]);
-file_put_contents("step/$cid.txt","xizmatnarx-$kat-$roy-$xiz");
-}else{
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>⚠️ Faqat raqamlardan foydalaning!</b>",
-'parse_mode'=>'html',
-]);
-}}}
-
-if(mb_stripos($userstep, "xizmatnarx-")!==false){
-$ex = explode("-",$userstep);
-$kat = $ex[1];
-$roy = $ex[2];
-$xiz = $ex[3];
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-unlink("sozlamalar/bot/$kat/$roy/$xiz");
-$royxat = file_get_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt");
-$k = str_replace("\n".$xiz."","",$royxat);
-file_put_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt",$k);
-}else{
-if(is_numeric($text)==true){
-file_put_contents("sozlamalar/bot/$kat/$roy/$xiz/narx.txt",$text);
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>$text $pul narxi qabul qilindi</b>
-
-📝 Buyurtma (min) miqdorini yuboring:",
-'parse_mode'=>'html',
-]);
-file_put_contents("step/$cid.txt","xizmatmin-$kat-$roy-$xiz");
-}else{
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>⚠️ Faqat harflardan foydalaning!</b>",
-'parse_mode'=>'html',
-]);
-}}}
-
-if(mb_stripos($userstep, "xizmatmin-")!==false){
-$ex = explode("-",$userstep);
-$kat = $ex[1];
-$roy = $ex[2];
-$xiz = $ex[3];
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-unlink("sozlamalar/bot/$kat/$roy/$xiz");
-$royxat = file_get_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt");
-$k = str_replace("\n".$xiz."","",$royxat);
-file_put_contents("sozlamalar/bot/$kat/$roy/$xiz/xizmatbolim.txt",$k);
-}else{
-if(is_numeric($text)==true){
-file_put_contents("sozlamalar/bot/$kat/$roy/$xiz/min.txt",$text);
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>$text ta qabul qilindi</b>
-
-📝 Buyurtma (max) miqdorini yuboring:",
-'parse_mode'=>'html',
-]);
-file_put_contents("step/$cid.txt","xizmatmax-$kat-$roy-$xiz");
-}else{
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>⚠️ Faqat raqamlardan foydalaning!</b>",
-'parse_mode'=>'html',
-]);
-}}}
-
-if(mb_stripos($userstep, "xizmatmax-")!==false){
-$ex = explode("-",$userstep);
-$kat = $ex[1];
-$roy = $ex[2];
-$xiz = $ex[3];
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-unlink("sozlamalar/bot/$kat/$roy/$xiz");
-$royxat = file_get_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt");
-$k = str_replace("\n".$xiz."","",$royxat);
-file_put_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt",$k);
-}else{
-if(is_numeric($text)==true){
-file_put_contents("sozlamalar/bot/$kat/$roy/$xiz/max.txt",$text);
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>✅ Yangi xizmat qo'shildi</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}else{
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>⚠️ Faqat raqamlardan foydalaning!</b>",
-'parse_mode'=>'html',
-]);
-}}}
-
-if($data=="taklif_narxi"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>📝 Yangi qiymatni yuboring:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","taklif");
-}
-if($userstep == "taklif"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-file_put_contents("sozlamalar/pul/referal.txt","$tx");
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Muvaffaqiyatli o'zgartirildi!</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$admin1_menu
-]);
-unlink("step/$cid.txt");
-}}
-
-if($data=="valyuta_nomi"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>📝 Yangi qiymatni yuboring:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","valyuta");
-}
-if($userstep == "valyuta"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-file_put_contents("sozlamalar/pul/valyuta.txt","$tx");
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Muvaffaqiyatli o'zgartirildi!</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$admin1_menu
-]);
-unlink("step/$cid.txt");
-}}
-
-if($tx=="🔎 Foydalanuvchini boshqarish" and in_array($cid,$admin)){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Kerakli foydalanuvchining ID raqamini yuboring:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$cid.txt","idraqam");
-}
-
-if($userstep=="idraqam"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-if(file_exists("foydalanuvchi/hisob/$tx.txt")){
-file_put_contents("step/odam.txt",$tx);
-$asos = file_get_contents("foydalanuvchi/hisob/$tx.txt");
-$by = file_get_contents("foydalanuvchi/hisob/$tx.nak");
-$odam = file_get_contents("foydalanuvchi/referal/$tx.txt");
-$ban = file_get_contents("ban/$text.txt");
-if($ban == null){
-$bans = "🔔 Banlash";
-}
-if($ban == "ban"){
-$bans = "🔕 Bandan olish";
-}
-bot("sendMessage",[
-"chat_id"=>$cid,
-"text"=>"<b>✅ Foydalanuvchi topildi:</b> <a href='tg://user?id=$tx'>$tx</a>
-
-<b>Asosiy balans:</b> $asos $pul
-<b>Buyurtmalari:</b> $by ta
-<b>Takliflari:</b> $odam ta",
-'parse_mode'=>"html",
-"reply_markup"=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"$bans",'callback_data'=>"ban"]],
-[['text'=>"➕ Pul qo'shish",'callback_data'=>"qoshish"],['text'=>"➖ Pul ayirish",'callback_data'=>"ayirish"]],
-]])
-]); 
-unlink("step/$cid.txt");
-}else{
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Ushbu foydalanuvchi botdan foydalanmaydi!</b>
-
-<i>Qayta yuboring:</i>",
-'parse_mode'=>'html',
-]);
-}}}
-
-if($data=="ban"){
-
-$ban = file_get_contents("ban/$saved.txt");
-
-if($builder24 != $saved){
-if($ban == "ban"){
-unlink("ban/$saved.txt");
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Foydalanuvchi bandan olindi!</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$admin1_menu,
-]);
-bot('sendMessage',[
-'chat_id'=>$saved,
-'text'=>"<b>Admin tomonidan bandan olindingiz!</b>",
-'parse_mode'=>"html",
-]);
-}else{
-file_put_contents("ban/$saved.txt",'ban');
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Foydalanuvchi banlandi!</b>",
-'parse_mode'=>"html",
-]);
-bot('sendMessage',[
-'chat_id'=>$saved,
-'text'=>"<b>Admin tomonidan ban oldingiz!</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$admin1_menu,
-]);
-}}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"Asosiy adminni bloklash mumkin emas!",
-'show_alert'=>true,
-]);
-}}
-
-if($data == "qoshish"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'parse_mode'=>"html",
-'text'=>"<a href='tg://user?id=$saved'>$saved</a> <b>ning hisobiga qancha pul qo'shmoqchisiz?</b>",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","qoshish");
-}
-
-if($userstep == "qoshish"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-bot('sendMessage',[
-'chat_id'=>$saved,
-'text'=>"<b>Adminlar tomonidan hisobingiz $tx $pul to'ldirildi</b>",
-'parse_mode'=>"html",
-]);
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Foydalanuvchi hisobiga $tx $pul qo'shildi</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$admin1_menu,
-]);
-$get = file_get_contents("foydalanuvchi/hisob/$saved.txt");
-$get += $tx;
-file_put_contents("foydalanuvchi/hisob/$saved.txt", $get);
-unlink("step/$cid.txt");
-}}
-
-if($data == "ayirish"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'parse_mode'=>"html",
-'text'=>"<a href='tg://user?id=$saved'>$saved</a> <b>ning hisobidan qancha pul ayirmoqchisiz?</b>",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","ayirish");
-}
-
-if($userstep == "valayir"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-unlink("step/odam.txt");
-}else{
-bot('sendMessage',[
-'chat_id'=>$saved,
-'text'=>"<b>Adminlar tomonidan hisobingizdan $tx $pul olib tashlandi</b>",
-'parse_mode'=>"html",
-]);
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Foydalanuvchi hisobidan $tx $pul olib tashlandi</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$admin1_menu,
-]);
-$get = file_get_contents("foydalanuvchi/hisob/$saved.txt");
-$get -= $tx;
-file_put_contents("foydalanuvchi/hisob/$saved.txt", $get);
-unlink("step/$cid.txt");
-unlink("step/odam.txt");
-}}
-
-if($tx=="*⃣ Birlamchi sozlamalar" and in_array($cid,$admin)){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>*⃣ Birlamchi sozlamalar bo'limi:
-
-1. Valyuta nomi:</b> $pul
-<b>2. Taklif narxi:</b> $taklifpul $pul",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"1",'callback_data'=>"valyuta_nomi"],['text'=>"2",'callback_data'=>"taklif_narxi"]],
-]])
-]);
-}
-
-if($tx=="💳 Hamyonlar" and in_array($cid,$admin)){
-$kategoriya = file_get_contents("sozlamalar/hamyon/kategoriya.txt");
-$more = explode("\n",$kategoriya);
-$soni = substr_count($kategoriya,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$title=str_replace("\n","",$more[$for]);
-$keys[]=["text"=>"$title- ni o'chirish","callback_data"=>"delete-$title"];
-$keysboard2 = array_chunk($keys, $hamson);
-$keysboard2[] = [['text'=>"➕ Yangi to'lov tizimi qo'shish",'callback_data'=>"yangi_tolov"]];
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-if($kategoriya != null){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$key,
-]);
-}else{
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"➕ Yangi to'lov tizimi qo'shish",'callback_data'=>"yangi_tolov"]],
-]])
-]);
-}}
-
-if(mb_stripos($data, "delete-")!==false){
-$ex = explode("-",$data);
-$kat = $ex[1];
-$royxat = file_get_contents("sozlamalar/hamyon/kategoriya.txt");
-$k = str_replace("\n".$kat."","",$royxat);
-file_put_contents("sozlamalar/hamyon/kategoriya.txt",$k);
-deleteFolder("sozlamalar/hamyon/$kat");
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('SendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>To'lov tizimi o'chirildi!</b>",
-'parse_mode'=>'html',
-]);
-}
-
-if($data== "yangi_tolov"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('SendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Yangi to'lov tizimi nomini yuboring:
-
-Masalan:</b> Click",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","tolov");
-}
-
-if($userstep=="tolov"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-if(isset($text)){
-$kategoriya2 = file_get_contents("sozlamalar/hamyon/kategoriya.txt");
-file_put_contents("sozlamalar/hamyon/kategoriya.txt","$kategoriya2\n$text");
-mkdir("sozlamalar/hamyon/$text");
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Ushbu to'lov tizimidagi hamyoningiz raqamini yuboring:</b>",
-'parse_mode'=>'html',
-]);
-file_put_contents("step/$cid.txt","raqam-$text");
-}else{
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Yangi to'lov tizimi nomini yuboring:
-
-Masalan:</b> Click",
-'parse_mode'=>'html',
-]);
-}}}
-
-if(mb_stripos($userstep, "raqam-")!==false){
-$ex = explode("-",$userstep);
-$kat = $ex[1];
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-deleteFolder("sozlamalar/hamyon/$kat");
-}else{
-file_put_contents("sozlamalar/hamyon/$kat/raqam.txt",$text);
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Yangi to'lov tizimi qo'shildi!</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}}
-
-if($tx=="🎛 Tugmalar" and in_array($cid,$admin)){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>🎛 Tugma sozlash bo'limidasiz tanlang:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"🖥 Asosiy menyudagi tugmalar",'callback_data'=>"asosiy_tugma"]],
-[['text'=>"💵 Pul ishlash bo'limi tugmalari",'callback_data'=>"pulishlash_tugma"]],
-[['text'=>"⚠️ O'z holiga qaytarish",'callback_data'=>"reset_tugma"]],
-]])
-]);
-}
-
-if($data=="tugma_sozlash"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>🎛 Tugma sozlash bo'limidasiz tanlang:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"🖥 Asosiy menyudagi tugmalar",'callback_data'=>"asosiy_tugma"]],
-[['text'=>"💵 Pul ishlash bo'limi tugmalari",'callback_data'=>"pulishlash_tugma"]],
-[['text'=>"⚠️ O'z holiga qaytarish",'callback_data'=>"reset_tugma"]],
-]])
-]);
-}
-
-if($data=="asosiy_tugma"){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"$tugma1",'callback_data'=>"tugmath-tugma1"]],
-[['text'=>"$tugma3",'callback_data'=>"tugmath-tugma3"],['text'=>"$tugma2",'callback_data'=>"tugmath-tugma2"]],
-[['text'=>"$tugma4",'callback_data'=>"tugmath-tugma4"]],
-[['text'=>"$tugma5",'callback_data'=>"tugmath-tugma5"],['text'=>"$tugma6",'callback_data'=>"tugmath-tugma6"]],
-[['text'=>"◀️ Orqaga",'callback_data'=>"tugma_sozlash"]],
-]])
-]);
-}
-
-if($data=="pulishlash_tugma"){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"$tugma7",'callback_data'=>"tugmath-tugma7"]],
-[['text'=>"$tugma9",'callback_data'=>"tugmath-tugma9"]],
-[['text'=>"$tugma8",'callback_data'=>"tugmath-tugma8"]],
-[['text'=>"◀️ Orqaga",'callback_data'=>"tugma_sozlash"]],
-]])
-]);
-}
-
-if(mb_stripos($data, "tugmath-")!==false){
-$ex = explode("-",$data)[1];
-$holat = file_get_contents("sozlamalar/tugma/$ex.txt");
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Hozirgi holat:</b> $holat
-
-<i>Yangi qiymatni yuboring:</i>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","tugmath-$ex");
-}
-
-if(mb_stripos($userstep, "tugmath-")!==false){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-if(isset($text)){
-$ex = explode("-",$userstep)[1];
-file_put_contents("sozlamalar/tugma/$ex.txt",$text);
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Muvaffaqiyatli o'zgartirildi.</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}else{
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>⚠️ Faqat harflardan foydalaning!</b>",
-'parse_mode'=>'html',
-]);
-}}}
-
-if($data=="reset_tugma"){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"⏱ <b>Yuklanmoqda...</b>",
-'parse_mode'=>"html",
-]);
-sleep(0.7);
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Tugma nomlari o'z holiga qaytarildi!</b>",
-'parse_mode'=>"html",
-]);
-deleteFolder("sozlamalar/tugma/");
-}
-
-if($tx=="📑 Matnlar" and in_array($cid,$admin)){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>📑 Matnlar sozlash bo'limidasiz tanlang:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"📄 Boshlang'ich xabar",'callback_data'=>"boshlangich"]],
-[['text'=>"📝 Qoidani o'zgartirish",'callback_data'=>"qoidani"]],
-[['text'=>"📝 Qo'llanmani o'zgartirish",'callback_data'=>"qollanmani"]],
-]])
-]);
-}
-
-if($data=="boshlangich" ){
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Yangi xabarni yuboring:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","matn1");
-}
-if($userstep == "matn1"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-file_put_contents("sozlamalar/matn/start.txt","$tx");
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Muvaffaqiyatli o'zgartirildi.</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}}
-
-if($data=="qoidani"){
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Yangi xabarni yuboring:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","matn2");
-}
-if($userstep == "matn2"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-file_put_contents("sozlamalar/matn/qoida.txt","$tx");
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Muvaffaqiyatli o'zgartirildi.</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}}
-
-if($data=="qollanmani"){
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Yangi xabarni yuboring:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","matn3");
-}
-if($userstep == "matn3"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-file_put_contents("sozlamalar/matn/info.txt","$tx");
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Muvaffaqiyatli o'zgartirildi.</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}}
-
-$admin6_menu = json_encode([
-'inline_keyboard'=>[
-[['text'=>"🔐 Majburiy obuna",'callback_data'=>"majburiy_obuna"]],
-[['text'=>"🎫 Promokod kanal",'callback_data'=>"promokodkanal"]],
-]]);
-
-if($data=="kanalsoz"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"🔐 Majburiy obuna",'callback_data'=>"majburiy_obuna"]],
-[['text'=>"🎫 Promokod kanal",'callback_data'=>"promokodkanal"]],
-]])
-]);
-unlink("step/$ccid.txt");
-}
-
-if($data=="promokodkanal"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>📢 Kerakli kanalni manzilini yuboring:</b>
-
-Namuna: @actualseen_uz",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","promo");
-}
-if($userstep == "promo"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-if(stripos($text,"@")!==false){
-$get = bot('getChat',['chat_id'=>$text]);
-$types = $get->result->type;
-$ch_name = $get->result->title;
-$ch_user = $get->result->username;
-file_put_contents("sozlamalar/kanal/promo.txt","$ch_user");
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Muvaffaqiyatli saqlandi!</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}else{
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>⚠️ Kanal manzili kiritishda xatolik:</b>
-
-Masalan: @actualseen_uz",
-'parse_mode'=>'html',
-]);
-}}}
-
-if($text == "🎟 Promokod" and in_array($cid,$admin)){
-if($promo != null){
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Promokod uchun nom yuboring:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$cid.txt",'code');
-}else{
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Promokod kanali ulanmagan!</b>",
-'parse_mode'=>"html",
-]);
-}}
-
-if($userstep == "code"){
-if($text == "🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-file_put_contents("code.txt","$text");
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Qabul qilindi.</b>
-
-<i>Endi esa, promokod qiymatini yuboring:</i>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$cid.txt",'codeqiymat');
-}}
-
-if($userstep == "codeqiymat"){
-if($text == "🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-unlink("code.txt");
-}else{
-file_put_contents("codemiq.txt","$text");
-unlink("step/$cid.txt");
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Promokod @$promo kanaliga yuborildi!</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-$prmo=file_get_contents("code.txt");
-$prmiq=file_get_contents("codemiq.txt");
-$msg = bot('SendMessage',[
-'chat_id'=>"@".$promo."",
-'text'=>"<b>💡 Yangi Promokod!</b>
-
-<b>🎫 Promokod:</b> <code>$prmo</code>
-<b>💵 Promokod qiymati:</b> $prmiq $pul",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"▶️ Botga kirish",'url'=>"https://t.me/$botname"]],
-]])
-])->result->message_id;
-file_put_contents("step/mid.txt",$msg);
-}}
-
-if($tx == "📊 Statistika" and in_array($cid,$admin)){
-$lichka=file_get_contents("statistika/obunachi.txt");
-$lich=substr_count($lichka,"\n");
-$load = sys_getloadavg();
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>💡 O'rtacha yuklanish:</b> <code>$load[0]</code>
-
-👥 <b>Foydalanuvchilar: $lich ta</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"🔁 Yangilash",'callback_data'=>"stats"]],
-]])
-]);
-}
-
-if($data=="stats"){
-$lichka=file_get_contents("statistika/obunachi.txt");
-$lich=substr_count($lichka,"\n");
-$load = sys_getloadavg();
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>💡 O'rtacha yuklanish:</b> <code>$load[0]</code>
-
-👥 <b>Foydalanuvchilar: $lich ta</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"🔁 Yangilash",'callback_data'=>"stats"]],
-]])
-]);
-}
-if($tx=="📢 Kanallar" and in_array($cid,$admin)){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$admin6_menu
-]);
-}
-
-if($data=="majburiy_obuna"){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Majburiy obunalarni sozlash bo'limidasiz:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"📋 Ro'yxatni ko'rish",'callback_data'=>"majburiy_obuna3"]],
-[['text'=>"➕ Kanal qo'shish",'callback_data'=>"majburiy_obuna1"],['text'=>"🗑 O'chirish",'callback_data'=>"majburiy_obuna2"]],
-[['text'=>"◀️ Orqaga",'callback_data'=>"kanalsoz"]],
-
-]])
-]);
-unlink("step/$cid.txt");
-}
-
-if($data=="majburiy_obuna1"){
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>📢 Kerakli kanalni manzilini yuboring:</b>
-
-Namuna: @actualseen_uz",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"🗄 Boshqaruv"]],
-]])
-]);
-file_put_contents("step/$ccid.txt","majburiy1");
-}
-if($userstep == "majburiy1"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-if(stripos($text,"@")!==false){
-if($kanallar == null){
-file_put_contents("sozlamalar/kanal/ch.txt",$text);
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>$text - kanal qo'shildi</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}else{
-file_put_contents("sozlamalar/kanal/ch.txt","$kanallar\n$text");
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>$text - kanal qo'shildi</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}}else{
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>⚠️ Kanal manzili kiritishda xatolik:</b>
-
-Masalan: @actualseen_uz",
-'parse_mode'=>'html',
-]);
-}}}
-
-if($data=="majburiy_obuna2"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>🗑 Kanallar o'chirildi!</b>",
-'parse_mode'=>"html",
-]);
-deleteFolder("sozlamalar/kanal/ch.txt");
-}
-
-if($data=="majburiy_obuna3"){
-if($kanallar==null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Kanallar ulanmagan!</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"◀️ Orqaga",'callback_data'=>"majburiy_obuna"]],
-]])
-]);
-}else{
-$soni = substr_count($kanallar,"@");
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Ulangan kanallar ro'yxati ⤵️</b>
-➖➖➖➖➖➖➖➖
-
-<i>$kanallar</i>
-
-<b>Ulangan kanallar soni:</b> $soni ta",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"◀️ Orqaga",'callback_data'=>"majburiy_obuna"]],
-]])
-]);
-}}
-
-if(isset($callback)){
-$get = file_get_contents("statistika/obunachi.txt");
-if(mb_stripos($get,$callfrid)==false){
-file_put_contents("statistika/obunachi.txt", "$get\n$callfrid");
-bot('sendMessage',[
 'chat_id'=>$builder24,
-'text'=>"<b>👤 Yangi obunachi qo'shildi</b>",
-'parse_mode'=>"html"
-]);
-}}
+'text'=>"<b>Foydalanuvchi hisobini to'ldirmoqchi!
 
-if(isset($message)){
-$get = file_get_contents("statistika/obunachi.txt");
-if(mb_stripos($get,$fid)==false){
-file_put_contents("statistika/obunachi.txt", "$get\n$fid");
+To'lov tizimi:</b> $turi
+<b>Foydalanuvchi:</b> <a href='tg://user?id=$cid'>$cid</a>
+<b>To'lov miqdori:</b> $miqdor $valyuta",
+'disable_web_page_preview'=>true,
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"✅",'callback_data'=>"on-$cid-$miqdor"],['text'=>"❌",'callback_data'=>"off-$cid-$miqdor"]],
+]])
+]);
 bot('sendMessage',[
-'chat_id'=>$builder24,
-'text'=>"<b>👤 Yangi obunachi qo'shildi</b>",
-'parse_mode'=>"html"
+'chat_id'=>$cid,
+'text'=>"<b>💌 So'rovingiz adminga yuborildi!</b>
+
+<i>Biroz kuting...</i>",
+'parse_mode'=>'html',
+'reply_markup'=>$menyu
 ]);
+unlink("step/$cid.step");
 }}
 
-if($text=="$tugma1" and joinchat($cid)==true){
+if(mb_stripos($data, "on-")!==false){
+$ex = explode("-",$data);
+$id = $ex[1];
+$miqdor = $ex[2];
+$pul = file_get_contents("pul/$id.txt");
+$a = $pul + $miqdor;
+file_put_contents("pul/$id.txt",$a);
+$oplata = file_get_contents("oplata/$id.txt");
+$b = $oplata + $miqdor;
+file_put_contents("oplata/$id.txt",$b);
+$refs = file_get_contents("odam/$id.ref");
+$cash=$miqdor/100*$referal;
+$qosh = $refs + $cash;
+file_put_contents("odam/$refs.txt",$qosh);
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$id,
+'text'=>"<b>✅ So'rovingiz qabul qilindi!</b>
+
+<i>Hisobingizga $miqdor $valyuta qo'shildi</i>",
+'parse_mode'=>'html',
+]);
+bot('sendMessage',[
+'chat_id'=>$refs,
+'text'=>"<b>Sizning referalingiz hisobini to'ldirdi sizga +$cash $valyuta berildi!</b>",
+'parse_mode'=>"html",
+]);
+bot('SendMessage',[
+'chat_id'=>$builder24,
+'text'=>"<b>✅ Foydalanuvchi cheki qabul qilindi!</b>",
+'parse_mode'=>'html',
+]);
+}
+
+if(mb_stripos($data, "off-")!==false){
+$ex = explode("-",$data);
+$id = $ex[1];
+$miqdor = $ex[2];
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>❌ So'rov bekor qilindi!</b>",
+'parse_mode'=>'html',
+]);
+}
+
+if($text == "$key3" and joinchat($cid)==true){
+bot('sendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>🔗 Sizning taklif havolangiz:</b>
+
+https://t.me/$bot?start=$cid
+
+<b>Chaqirgan foydalanuvchingiz hisobini to'ldirsa sizga $referal% miqdori sizga beriladi!
+
+Sizning takliflaringiz: $odam ta</b>",
+'parse_mode'=>'html',
+]);
+unlink("step/$cid.bol");
+unlink("step/$cid.ich");
+unlink("step/$cid.xiz");
+}
+
+if($data == "promokod"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Promokodni kiriting:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$back
+]);
+file_put_contents("step/$cid2.step",'promo');
+}
+
+if($step == "promo"){
+if($text=="◀️ Orqaga"){
+unlink("step/$cid.step");
+}else{
+$kod = file_get_contents("step/kod.txt");
+if($text == $kod){
+$money = file_get_contents("step/money.txt");
+$a = $pul + $money;
+file_put_contents("pul/$cid.txt",$a);        
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"✅ <b>Promokodni to'g'ri yubordingiz va hisobingizga $money $valyuta qo'shildi!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$menyu,
+]);
+unlink("step/$cid.step");
+bot('editMessageText',[
+'chat_id'=>$promo,
+'message_id'=>$post,
+'text'=>"<b>✅ Promokod ishlatildi!</b>
+
+🎫 <b>Promokod:</b> <del>$kod</del>
+👤 <b>Foydalangan odam:</b> <a href='tg://user?id=$cid'>$cid</a>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"▶️ Botga kirish",'url'=>"https://t.me/$bot"]],
+]])
+]);
+unlink("step/money.txt");
+unlink("step/kod.txt");
+}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>⚠️ Bunday promokod topilmadi!</b>",
+'parse_mode'=>'html',
+]);
+}}}
+
+$bolim = file_get_contents("nakrutka/bolim.txt");
 $more = explode("\n",$bolim);
 $soni = substr_count($bolim,"\n");
 $key=[];
 for ($for = 1; $for <= $soni; $for++) {
-$ichida = file_get_contents("sozlamalar/bot/".$more[$for]."/ichkibolim.txt");
+$ichida=file_get_contents("nakrutka/".$more[$for]."/ichki.txt");
 $ta = substr_count($ichida,"\n");
-$key[]=["text"=>"$more[$for] - $ta","callback_data"=>"bolim-".$more[$for]];
-$keyboard2 = array_chunk($key, $byson);
-$bolim = json_encode([
+$key[]=["text"=>"$more[$for] - $ta","callback_data"=>"nakrutka-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator1);
+$nakrutka = json_encode([
 'inline_keyboard'=>$keyboard2,
 ]);
 }
+
+if($text == "$key1" and joinchat($cid)==true){
 if($bolim == null){
 bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>⚠️ Bo'limlar mavjud emas!</b>",
+'chat_id'=>$chat_id,
+'text'=>"🤷‍♂️ <b>Bo'limlar mavjud emas!</b>",
 'parse_mode'=>'html',
 ]);
 }else{
 bot('SendMessage',[
-'chat_id'=>$cid,
+'chat_id'=>$chat_id,
 'text'=>"<b>Quyidagi ijtimoiy tarmoqlardan birini tanlang:</b>",
 'parse_mode'=>'html',
-'reply_markup'=>$bolim,
+'reply_markup'=>$nakrutka
 ]);
-unlink("foydalanuvchi/by/buyurtma.$cid");
+unlink("step/$cid.bol");
+unlink("step/$cid.ich");
+unlink("step/$cid.xiz");
 }}
 
-if($data == "orqaga" and joinchat($ccid)=="true"){
-$more = explode("\n",$bolim);
-$soni = substr_count($bolim,"\n");
+if($data == "servis"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Quyidagi ijtimoiy tarmoqlardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$nakrutka
+]);
+}
+
+if(mb_stripos($data,"nakrutka-")!==false){
+$ex=explode("-",$data)[1];
+$ichki = file_get_contents("nakrutka/$ex/ichki.txt");
+file_put_contents("step/$cid2.bol","$ex");
+if($ichki == null){
+bot('answerCallbackQuery',[
+'callback_query_id'=>$qid,
+'text'=>"🤷🏻‍♂ Ichki bo'limlar topilmadi!",
+'show_alert'=>true,
+]);
+}else{
+$ichki=file_get_contents("nakrutka/$ex/ichki.txt");
+$more = explode("\n",$ichki);
+$soni = substr_count($ichki,"\n");
 $key=[];
 for ($for = 1; $for <= $soni; $for++) {
-$ichida = file_get_contents("sozlamalar/bot/".$more[$for]."/ichkibolim.txt");
+$ichida = file_get_contents("nakrutka/$ex/".$more[$for]."/xizmat.txt");
 $ta = substr_count($ichida,"\n");
-$key[]=["text"=>"$more[$for] - $ta","callback_data"=>"bolim-".$more[$for]];
-$keyboard2 = array_chunk($key, $byson);
-$bolim = json_encode([
+$key[]=["text"=>"$more[$for] - $ta","callback_data"=>"tanlash-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator2);
+$keyboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"servis"]];
+$ichki2 = json_encode([
 'inline_keyboard'=>$keyboard2,
 ]);
 }
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Quyidagi ijtimoiy tarmoqlardan birini tanlang:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>$bolim,
-]);
-}
-
-if(mb_stripos($data, "bolim-")!==false){
-$ex = explode("-",$data);
-$kat = $ex[1];
-file_put_contents("step/$ccid.bol","$kat");
-$royxat = file_get_contents("sozlamalar/bot/$kat/ichkibolim.txt");
-$more = explode("\n",$royxat);
-$soni = substr_count($royxat,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$ichida = file_get_contents("sozlamalar/bot/$kat/".$more[$for]."/xizmatbolim.txt");
-$ta = substr_count($ichida,"\n");
-$keys[]=["text"=>"$more[$for] ($ta)","callback_data"=>"ichki-".$more[$for]];
-$keysboard2 = array_chunk($keys, $ibyson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"orqaga"]];
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-if($royxat != null){
 bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
 'text'=>"<b>Quyidagi ichki bo'limlardan birini tanlang:</b>",
 'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"⚠ Ichki bo'liml mavjud emas!",
-'show_alert'=>true,
+'reply_markup'=>$ichki2,
 ]);
 }}
 
-if(mb_stripos($data, "ichki-")!==false){
-$ex = explode("-",$data);
-$roy = $ex[1];
-$kat = file_get_contents("step/$ccid.bol");
-file_put_contents("step/$ccid.ich","$roy");
-$royxat = file_get_contents("sozlamalar/bot/$kat/$roy/xizmatbolim.txt");
-$ids = explode("\n",$royxat);
-$soni = substr_count($royxat,"\n");
-foreach($ids as $id){
-$key = [];
-$text = "";
-for ($for = 1; $for <= $soni; $for++) {
-$narx=file_get_contents("sozlamalar/bot/$kat/$roy/".$ids[$for]."/narx.txt");
-$text .= "<b>$for.</b> ".$ids[$for]." - $narx $pul\n";
-$key[]=["text"=>"$for","callback_data"=>"byxiz-".$ids[$for]];
+if(mb_stripos($data,"tanlash-")!==false){
+$ich = explode("-",$data)[1];
+$bolim=file_get_contents("step/$cid2.bol");
+$xizmat = file_get_contents("nakrutka/$bolim/$ich/xizmat.txt");
+file_put_contents("step/$cid2.ich","$ich");
+if($xizmat == null){
+bot('answerCallbackQuery',[
+'callback_query_id'=>$qid,
+'text'=>"🤷🏻‍♂ Xizmatlar topilmadi!",
+'show_alert'=>true,
+]);
+}else{
+$s=explode("\n",$xizmat);
+$soni = substr_count($xizmat,"\n");
+$key=[];
+for($i=1;$i<=$soni;$i++){
+$s4=get("nakrutka/$bolim/$ich/".$s[$i]."/id.txt");
+$j=json_decode(get("$sayt?key=$api&action=services"), true);
+foreach($j as $el){
+if($el['service']==$s4){
+$name=$el["name"];
+$min=$el["min"];
+$max=$el["max"];
+$rate=$el["rate"];
+$rate2=$el["rate"];
+$type=strtolower($el['type']);
+break;
 }
-$keysboard2 = array_chunk($key, $xizson);
-$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"bolim-".$kat]];
-$key = json_encode([
+}
+$ff=get("admin/foiz.txt");
+$fr=get("admin/kurs.txt");
+$ff2=get("admin/foiz2.txt");
+$rate=$rate*$fr;
+$rp=$rate/100;
+$rp=$rp*$ff+$rate;
+
+$rps=$rp/100*$ff2;
+$rr=$rp-$rps;
+
+$rate2=$rate2*$fr;
+$rp2=$rate2/100;
+$rp2=$rp2*$ff2+$rate2;
+$text .= "<b>$i.</b> ".$s[$i]." - ".round($rp,2)." $valyuta\n";
+$key[]=["text"=>"$i","callback_data"=>"xizm-".$s[$i]];
+}
+$keysboard2 = array_chunk($key, $qator3);
+$keysboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"nakrutka-$bolim"]];
+$xizmatlar = json_encode([
 'inline_keyboard'=>$keysboard2,
 ]);
-}
-if($royxat != null){
 bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
 'text'=>"<b>Quyidagi xizmatlardan birini tanlang:</b>
 
 $text",
 'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('answerCallbackQuery',[
-'callback_query_id'=>$callid,
-'text'=>"⚠ Xizmatlar mavjud emas!",
-'show_alert'=>true,
+'reply_markup'=>$xizmatlar,
 ]);
 }}
 
-if(mb_stripos($data, "byxiz-")!==false){
-$ex = explode("-",$data);
-$royxat = file_get_contents("step/$ccid.ich");
-$kategoriya = file_get_contents("step/$ccid.bol");
-$xiz = $ex[1];
-$xizmat = file_get_contents("sozlamalar/bot/$kategoriya/$royxat/$xiz/xizmat.txt");
-$narx=file_get_contents("sozlamalar/bot/$kategoriya/$royxat/$xiz/narx.txt");
-$id=file_get_contents("sozlamalar/bot/$kategoriya/$royxat/$xiz/id.txt");
-$min=file_get_contents("sozlamalar/bot/$kategoriya/$royxat/$xiz/min.txt");
-$max=file_get_contents("sozlamalar/bot/$kategoriya/$royxat/$xiz/max.txt");
+if(mb_stripos($data,"xizm-")!==false){
+$xiz = explode("-",$data)[1];
+$bolim = file_get_contents("step/$cid2.bol");
+$ich = file_get_contents("step/$cid2.ich");
+$s4=get("nakrutka/$bolim/$ich/$xiz/id.txt");
+$s1=get("nakrutka/$bolim/$ich/$xiz/info.txt");
+file_put_contents("step/$cid2.xiz","$xiz");
+$j=json_decode(get("$sayt?key=$api&action=services"), true);
+foreach($j as $el){
+if($el['service']==$s4){
+$name=$el["name"];
+$min=$el["min"];
+$max=$el["max"];
+$rate=$el["rate"];
+$rate2=$el["rate"];
+$type=strtolower($el['type']);
+break;
+}
+}
+$ff=get("admin/foiz.txt");
+$fr=get("admin/kurs.txt");
+$ff2=get("admin/foiz2.txt");
+$rate=$rate*$fr;
+$rp=$rate/100;
+$rp=$rp*$ff+$rate;
+
+$rps=$rp/100*$ff2;
+$rr=$rp-$rps;
+
+$rate2=$rate2*$fr;
+$rp2=$rate2/100;
+$rp2=$rp2*$ff2+$rate2;
+$status=file_get_contents("status/$cid2.txt");
+if($status == "VIP"){
+$ra = $rp;
+}else{
+$ra = $rp2;
+}
 bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b><u>📝 Xizmat nomi:</u></b> $xizmat
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b><u>📦</u> $xiz</b>
 
-<b><u>💵 Narxi (1000x):</u></b> $narx $pul
-<b><u>📑 Batafsil ma'lumot:</u> Tez boshlash. Buyurtma berishda yaxshilab etibor bering aks holda buyurtma bekor qilinmaydi. Agarda buyurtma bekor bo'lsa pul avto qaytariladi!</b>
+<b><u>💵 Xizmat narxi (1000x):</u></b> ".round($rp,2)." $valyuta
 
-<b><u>🔽 Minimal buyurtma:</u></b> $min ta
-<b><u>🔼 Maksimal buyurtma:</u></b> $max ta",
+<b><u>📑 Batafsil ma'lumot:</u> $s1</b>
+
+<b><u>⬇️ Minimal buyurtma:</u></b> ".($min)." ta
+<b><u>⬆️ Maksimal buyurtma:</u></b> ".($max)." ta
+
+<b><u>💎 VIP va API uchun</u></b>: ".($rp2)." $valyuta",
 'parse_mode'=>'html',
 'reply_markup'=>json_encode([
 'inline_keyboard'=>[
-[['text'=>"✅ Buyurtma berish",'callback_data'=>"buyurtma-$xizmat-$narx-$min-$max-$id"]],
-[['text'=>"◀️ Orqaga",'callback_data'=>"ichki-".$royxat."-".$kategoriya]],
+[['text'=>"✅ Buyurtma berish",'callback_data'=>"buyurtma-$ra-$min-$max-$s4"]],
+[['text'=>"◀️ Orqaga",'callback_data'=>"tanlash-$ich-$bolim"]],
 ]])
 ]);
 }
 
 if(mb_stripos($data, "buyurtma-")!==false){
 $ex = explode("-",$data);
-$xiz = $ex[1];
-$narx = $ex[2];
-$min = $ex[3];
-$max = $ex[4];
-$id = $ex[5];
-$balance= json_decode(file_get_contents("https://actualseen.uz/api/v2?key=$api&action=balance"),true);
+$narx = $ex[1];
+$min = $ex[2];
+$max = $ex[3];
+$id = $ex[4];
+$balance= json_decode(file_get_contents("$sayt?key=$api&action=balance"),true);
 if($balance['balance']==null or $balance['balance']=="0"){
 bot('deleteMessage',[ 
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
 ]);
 bot('SendMessage',[ 
-'chat_id'=>$ccid,
+'chat_id'=>$cid2,
 'text'=>"<b>⛔️ Texnik xatolik</b>
 
 Botga API ulanmagan yoki API balansda pul mavjud emas!", 
@@ -3297,7 +1220,7 @@ Botga API ulanmagan yoki API balansda pul mavjud emas!",
 ]);
 }else{
 bot('SendMessage',[ 
-'chat_id'=>$ccid,
+'chat_id'=>$cid2,
 'text'=>"<b><u><i>Kerakli buyurtma miqdorini kiriting:</i></u></b>", 
 'parse_mode'=>'html', 
 'reply_markup'=>json_encode([
@@ -3306,26 +1229,24 @@ bot('SendMessage',[
 [['text'=>"◀️ Orqaga"]]
 ]])
 ]);
-file_put_contents("step/$ccid.txt","by-$xiz-$narx-$min-$max-$id");
+file_put_contents("step/$cid2.step","by-$narx-$min-$max-$id");
 }}
 
-if(mb_stripos($userstep, "by-")!==false){
-$ex = explode("-",$userstep);
-$xiz = $ex[1];
-$narx = $ex[2];
-$min = $ex[3];
-$max = $ex[4];
-$id = $ex[5];
+if(mb_stripos($step, "by-")!==false){
+$ex = explode("-",$step);
+$narx = $ex[1];
+$min = $ex[2];
+$max = $ex[3];
+$id = $ex[4];
 if($tx=="◀️ Orqaga"){
-unlink("step/$cid.txt");
+unlink("step/$cid.step");
 }else{
 if(is_numeric($text)=="true"){ 
 if($text >= $min and $text <= $max){
 $umumiy = $narx / 1000;
 $miqdor = $text * $umumiy;
-if($asosiy >= $miqdor){
-mkdir("foydalanuvchi/by/");
-file_put_contents("foydalanuvchi/by/$cid.son","$text"); 
+if($pul >= $miqdor){
+file_put_contents("step/$cid.son","$text"); 
 bot('SendMessage',[ 
 'chat_id'=>$cid,
 'text'=>"<b>✅ $text ta buyurtma qabul qilindi 
@@ -3336,48 +1257,46 @@ bot('SendMessage',[
 'disable_web_page_preview'=>true, 
 'parse_mode'=>'html', 
 ]); 
-file_put_contents("step/$cid.txt","buy-$xiz-$narx-$min-$max-$id"); 
+file_put_contents("step/$cid.step","buy-$narx-$min-$max-$id"); 
 }else{ 
 bot('SendMessage',[ 
 'chat_id'=>$cid, 
 'text'=>"<b>Hisobingizda yetarli mablag' mavjud emas!</b> 
  
-Qayta urinib ko'ring:", 
-'parse_mode'=>'html', 
-]); 
-}}else{ 
-$minby = "$min"; 
-$maxby = "$max"; 
-bot('SendMessage',[ 
-'chat_id'=>$cid, 
-'text'=>"<b>Minimal buyurtma - $minby ta 
-Maksimal buyurtma - $maxby ta</b> 
+Qayta urinib ko'ring:",
+'parse_mode'=>'html',
+]);
+}}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Minimal buyurtma - $min ta 
+Maksimal buyurtma - $max ta</b> 
 
-Qayta urinib ko'ring:", 
-'parse_mode'=>'html', 
+Qayta urinib ko'ring:",
+'parse_mode'=>'html',
 ]);
 }}else{ 
-bot('SendMessage',[ 
+bot('SendMessage',[
 'chat_id'=>$cid, 
-'text'=>"<b>Faqat raqamlardan foydalaning!</b>", 
-'parse_mode'=>'html', 
-]); 
+'text'=>"<b>Faqat raqamlardan foydalaning!</b>",
+'parse_mode'=>'html',
+]);
 }}}
 
-if(mb_stripos($userstep, "buy-")!==false){
-$ex = explode("-",$userstep);
-$xiz = $ex[1];
-$narx = $ex[2];
-$min = $ex[3];
-$max = $ex[4];
-$id = $ex[5];
+if(mb_stripos($step, "buy-")!==false){
+$ex = explode("-",$step);
+$narx = $ex[1];
+$min = $ex[2];
+$max = $ex[3];
+$id = $ex[4];
 if($tx=="◀️ Orqaga"){
-unlink("step/$cid.txt");
+unlink("step/$cid.step");
 }else{
 if(mb_stripos($text, "https://")!==false){ 
-file_put_contents("foydalanuvchi/by/$cid.url","$text");
-$son = file_get_contents("foydalanuvchi/by/$cid.son"); 
-$url = file_get_contents("foydalanuvchi/by/$cid.url");
+file_put_contents("step/$cid.url","$text");
+$son = file_get_contents("step/$cid.son"); 
+$url = file_get_contents("step/$cid.url");
+$xiz = file_get_contents("step/$cid.xiz");
 $umumiy = $narx / 1000;
 $miqdor = $son * $umumiy;
 bot('SendMessage',[
@@ -3387,18 +1306,18 @@ bot('SendMessage',[
 <b>🔗 Havola:</b> $url
 
 <b>🔢 Buyurtma miqdori:</b> $son ta
-<b>💳 Buyurtma narxi:</b> $miqdor $pul
-<b>💵 Sizning balansingiz:</b> $asosiy $pul
+<b>💳 Buyurtma narxi:</b> $miqdor $valyuta
+<b>💵 Sizning balansingiz:</b> $pul $valyuta
 
 <i>⚠️ Buyurtmani tasdiqlashdan oldin, ma'lumotlarni tekshirib chiqing!</i>", 
 'disable_web_page_preview'=>true, 
 'parse_mode'=>'html', 
 'reply_markup'=>json_encode([
 'inline_keyboard'=>[
-[['text'=>"✅ Tasdiqlash",'callback_data'=>"byber-$xiz-$miqdor-$son-$id"]],
+[['text'=>"✅ Tasdiqlash",'callback_data'=>"byber-$miqdor-$son-$id"]],
 ]])
 ]);
-unlink("step/$cid.txt");
+unlink("step/$cid.step");
 }else{ 
 bot('SendMessage',[ 
 'chat_id'=>$cid, 
@@ -3411,579 +1330,93 @@ Qayta urunib ko'ring:",
 
 if(mb_stripos($data, "byber-")!==false){
 $ex = explode("-",$data);
-$xiz = $ex[1];
-$miqdor = $ex[2];
-$son = $ex[3];
-$id = $ex[4];
+$miqdor = $ex[1];
+$son = $ex[2];
+$id = $ex[3];
 bot('deleteMessage',[
-'chat_id'=>$ccid,
+'chat_id'=>$cid2,
 'message_id'=>$update->callback_query->message->message_id,
 ]);
-$nak = file_get_contents("foydalanuvchi/by/buyurtma.$ccid");
+file_put_contents("step/by.$cid2");
+$nak = file_get_contents("step/by.$cid2");
 if(stripos($nak,"$callfrid") !== false){
 bot('sendMessage',[
-'chat_id'=>$ccid,
+'chat_id'=>$cid2,
 'text'=>"$start",
 'parse_mode'=>"html",
-'reply_markup'=>$menyus,
+'reply_markup'=>$menyu,
 ]);
-unlink("step/$ccid.txt");
+unlink("step/$cid2.step");
 }else{
-$url = file_get_contents("foydalanuvchi/by/$ccid.url");
-file_put_contents("foydalanuvchi/by/buyurtma.$ccid","\n".$callfrid,FILE_APPEND);
-
-$api_url = file_get_contents("sozlamalar/pul/api_url.txt");
-$urll=json_decode(file_get_contents("$api_url?key=$api&action=add&link=$url&quantity=$son&service=$id"),true);
-
- $order=$urll['order'];
+$url = file_get_contents("step/$cid2.url");
+$urll=json_decode(file_get_contents("$sayt?key=$api&action=add&link=$url&quantity=$son&service=$id"),true);
+$order=$urll['order'];
 if($order==null){
 bot('sendMessage',[
-'chat_id'=>$ccid,
+'chat_id'=>$cid2,
 'text'=>"<b>⚠️ Buyurtma qabul qilinmadi!</b>",
 'parse_mode'=>"html",
-'disable_web_page_preview'=>true,
+',reply_markup'=>$menyu,
 ]);
+unlink("step/$cid2.url");
+unlink("step/$cid2.son");
+unlink("step/$cid2.bol");
+unlink("step/$cid2.ich");
+unlink("step/$cid2.xiz");
+unlink("step/by.$cid2");
 }else{
-$pulim = file_get_contents("foydalanuvchi/hisob/$ccid.txt");
+$pulim = file_get_contents("pul/$cid2.txt");
 $ayir = $pulim - $miqdor; 
-file_put_contents("foydalanuvchi/hisob/$ccid.txt","$ayir");
-$nakby = file_get_contents("foydalanuvchi/hisob/$ccid.nak");
+file_put_contents("pul/$cid2.txt","$ayir");
+$nakby = file_get_contents("pul/$cid2.nak");
 $plus = $nakby + 1; 
-file_put_contents("foydalanuvchi/hisob/$ccid.nak","$plus"); 
-$idlar=file_get_contents("statistika/id.txt");
+file_put_contents("pul/$cid2.nak","$plus"); 
+$idlar=file_get_contents("buyurtma/id.txt");
 $pls = $idlar + 1; 
-file_put_contents("statistika/id.txt","$pls");
+file_put_contents("buyurtma/id.txt","$pls");
 mkdir("buyurtma/$pls");
 file_put_contents("buyurtma/$pls/order.txt","$order");
-file_put_contents("buyurtma/$pls/egasi.txt","$ccid");
-file_put_contents("buyurtma/$pls/miqdor.txt","$miqdor");
+file_put_contents("buyurtma/$pls/egasi.txt","$cid2");
 file_put_contents("buyurtma/$pls/soni.txt","$son");
+file_put_contents("buyurtma/$pls/miqdor.txt","$miqdor");
 $fy = file_get_contents("buyurtma/$ccid.txt");
 file_put_contents("buyurtma/$ccid.txt","$fy\n$pls");
+$bolim = file_get_contents("step/$cid2.bol");
+$ich = file_get_contents("step/$cid2.ich");
+$xiz = file_get_contents("step/$cid2.xiz");
 bot('sendMessage',[
-'chat_id'=>$ccid,
+'chat_id'=>$cid2,
 'text'=>"<b>✅ Buyurtma qabul qilindi!
 
 Buyurtma IDsi:</b> <code>$pls</code>
 
 <i>Yuqoridagi ID orqali buyurtmangiz haqida ma'lumot olishingiz mumkin!</i>",
 'parse_mode'=>"html",
-'disable_web_page_preview'=>true,
+'reply_markup'=>$menyus,
 ]);
+unlink("step/$cid2.url");
+unlink("step/$cid2.son");
+unlink("step/$cid2.bol");
+unlink("step/$cid2.ich");
+unlink("step/$cid2.xiz");
+unlink("step/by.$cid2");
 bot('sendMessage',[
-'chat_id'=>$admin,
+'chat_id'=>$builder24,
 'text'=>"<b>🆕 Yangi buyurtma</b>
 
 <b>📦 Buyurtma turi:</b> $xiz
 <b>🔗 Havola:</b> $url
 <b>🔢 Buyurtma miqdori:</b> $son ta
-<b>💵 Buyurtma narxi:</b> $miqdor $pul
+<b>💵 Buyurtma narxi:</b> $miqdor $valyuta
 
-<b>🆔 Buyurtma IDsi:</b> <code>$order</code>",
+<b>🆔 Buyurtma IDsi:</b> <code>$pls</code>",
 'parse_mode'=>"html",
-'disable_web_page_preview'=>true,
 ]);
 }}}
 
-if($tx=="$tugma2" and joinchat($fid)=="true"){
-$odam=file_get_contents("foydalanuvchi/referal/$cid.txt");
+if($text=="$key2" and joinchat($cid)=="true"){
 bot('sendMessage',[
 'chat_id'=>$cid,
-'text'=>"<b>🔎 ID raqamingiz:</b> <code>$cid</code>
-
-<b>💵 Asosiy balans:</b> $asosiy $pul
-<b>🗄 Buyurtmalaringiz:</b> $by ta
-<b>🔗 Takliflaringiz:</b> $odam ta",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"🔁 O'tkazmalar",'callback_data'=>"otkazma"]],
-[['text'=>"💳 Hisobni to'ldirish",'callback_data'=>"oplata"]],
-]])
-]);
-}
-
-if($data == "otkazma" and joinchat($ccid)=="true"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Foydalanuvchi ID raqamini yuboring:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"◀️ Orqaga"]]
-]])
-]);
-file_put_contents("step/$ccid.txt","otkazma");
-}
-
-if($userstep == "otkazma"){
-if($text=="◀️ Orqaga"){
-unlink("step/$cid.txt");
-}else{
-$odambor = file_get_contents("foydalanuvchi/hisob/$text.txt");
-if($odambor){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>O'tkazma miqdorini yuboring:
-
-💵 Asosiy balans:</b> $asosiy $pul",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"◀️ Orqaga"]]
-]])
-]);
-
-file_put_contents("step/$cid.txt","otkazma2-$text");
-}else{
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>Ushbu foydalanuvchi botdan foydalanmaydi!</b>
-
-Qayta yuboring:",
-'parse_mode'=>'html',
-]);
-}}}
-
-if(mb_stripos($userstep, "otkazma2-")!==false){
-if($text=="◀️ Orqaga"){
-unlink("step/$cid.txt");
-}else{
-$ex = explode("-",$userstep);
-$odam = $ex[1];
-$qoshiladi = file_get_contents("foydalanuvchi/hisob/$odam.txt");
-$olinadi = file_get_contents("foydalanuvchi/hisob/$cid.txt");
-$komisa = $text / 1 * 1;
-if($olinadi>=$komisa and $text>=0){
-$plus = $qoshiladi + $text;
-$minus = $olinadi - $komisa;
-file_put_contents("foydalanuvchi/hisob/$odam.txt","$plus");
-file_put_contents("foydalanuvchi/hisob/$cid.txt","$minus");
-if($cid==$admin){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>✅</b> <a href='tg://user?id=$odam'>Foydalanuvchiga</a><b> $text $pul o'tkazildi</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$main_menuad,
-]);
-unlink("step/$cid.txt");
-}else{
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>✅</b> <a href='tg://user?id=$odam'>Foydalanuvchiga</a><b> $text $pul o'tkazildi</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$main_menu,
-]);
-unlink("step/$cid.txt");
-}
-bot("sendMessage",[
-"chat_id"=>$odam,
-"text"=>"<a href='tg://user?id=$cid'>$cid</a><b> hisobingizga $text $pul o'tkazdi</b>",
-'parse_mode'=>'html',
-]);
-}else{
-bot("sendMessage",[
-"chat_id"=>$cid,
-"text"=>"<b>⚠️ Mablag' yetarli emas!</b>",
-'parse_mode'=>'html',
-]);
-}}}
-
-if($data == "orqaga12" and joinchat($ccid)=="true"){
-$hisob = file_get_contents("foydalanuvchi/hisob/$ccid.txt");
-$by = file_get_contents("foydalanuvchi/hisob/$ccid.nak");
-$odam=file_get_contents("foydalanuvchi/referal/$ccid.txt");
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('SendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>🔎 ID raqamingiz:</b> <code>$ccid</code>
-
-<b>💵 Asosiy balans:</b> $hisob $pul
-<b>🗄 Buyurtmalaringiz:</b> $by ta
-<b>🔗 Takliflaringiz:</b> $odam ta",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"🔁 O'tkazmalar",'callback_data'=>"otkazma"]],
-[['text'=>"💳 Hisobni to'ldirish",'callback_data'=>"oplata"]],
-]])
-]);
-}
-
-if($tx == "◀️ Orqaga" and joinchat($fid)=="true"){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"$start",
-'parse_mode'=>"html",
-'reply_markup'=>$menyu,
-]);
-unlink("step/$cid.txt");
-unlink("foydalanuvchi/by/buyurtma.$cid");
-}
-
-if($data=="oplata" and joinchat($ccid)==true){
-$kategoriya = file_get_contents("sozlamalar/hamyon/kategoriya.txt");
-$more = explode("\n",$kategoriya);
-$soni = substr_count($kategoriya,"\n");
-$key=[];
-for ($for = 1; $for <= $soni; $for++) {
-$title = str_replace("\n","",$more[$for]);
-$key[]=["text"=>"$title","callback_data"=>"karta-$title"];
-$keyboard2 = array_chunk($key, $hamson);
-$keyboard2[] = [['text'=>"◀️ Orqaga",'callback_data'=>"orqaga12"]];
-$bolim = json_encode([
-'inline_keyboard'=>$keyboard2,
-]);
-}
-if($kategoriya == null){
-bot("answerCallbackQuery",[
-"callback_query_id"=>$callid,
-"text"=>"⚠️ To'lov tizimlari qo'shilmagan!",
-"show_alert"=>true,
-]);
-}else{
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>💳 To'lov tizimlaridan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$bolim,
-]);
-}}
-
-if(mb_stripos($data, "karta-")!==false){
-$ex = explode("-",$data);
-$kategoriya = $ex[1];
-$raqam = file_get_contents("sozlamalar/hamyon/$kategoriya/raqam.txt");
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>📲 To‘lov turi:</b> <u>$kategoriya</u>
-
-💳 Karta: <code>$raqam</code>
-📝 Izoh: #ID$ccid
-
-Almashuvingiz muvaffaqiyatli bajarilishi uchun quyidagi harakatlarni amalga oshiring: 
-1) Istalgan pul miqdorini tepadagi Hamyonga tashlang
-2) «✅ To'lov qildim» tugmasini bosing; 
-4) Qancha pul miqdoni yuborganingizni kiritin;
-3) Toʻlov haqidagi suratni botga yuboring;
-3) Operator tomonidan almashuv tasdiqlanishini kuting!",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"✅ To'lov qildim",'callback_data'=>"tolov"]],
-[['text'=>"◀️ Orqaga",'callback_data'=>"oplata"]],
-]])
-]);
-}
-
-if($data == "tolov" and joinchat($ccid)=="true"){
-bot('DeleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('SendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>📝 To'lov miqdorini yuboring:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"◀️ Orqaga"]],
-]])
-]);
-file_put_contents("step/$ccid.txt",'oplata');
-}
-
-if($userstep == "oplata"){
-if($tx=="◀️ Orqaga"){
-unlink("step/$cid.txt");
-}else{
-file_put_contents("step/hisob.$cid",$text);
-bot('SendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>🧾 To'lovingiz haqidagi chekni shu yerga yuboring:</b>",
-'parse_mode'=>'html',
-]);
-file_put_contents("step/$cid.txt",'rasm');
-}}
-
-if($userstep == "rasm"){
-if($tx=="◀️ Orqaga"){
-unlink("step/$fid.txt");
-}else{
-$photo = $message->photo;
-$file = $photo[count($photo)-1]->file_id;
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>💌 So'rovingiz adminga yuborildi!</b>
-
-<i>Biroz kuting...</i>",
-'parse_mode'=>'html',
-'reply_markup'=>$menyu,
-]);
-$hisob=file_get_contents("step/hisob.$fid");
-unlink("step/$fid.txt");
-bot('sendPhoto',[
-'chat_id'=>$builder24,
-'photo'=>$file,
-'caption'=>"📄 <b>Foydalanuvchidan check:
-
-👮‍♂️ Foydalanuvchi:</b> <a href='https://tg://user?id=$cid'>$name</a>
-🔎 <b>ID raqami:</b> $fid
-💵 <b>To'lov miqdori:</b> $hisob $pul",
-'disable_web_page_preview'=>true,
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"✅ Tasdiqlash",'callback_data'=>"on=$fid"],['text'=>"❌ Bekor qilish",'callback_data'=>"off=$fid"]],
-]])
-]);
-}}
-
-if(mb_stripos($data,"on=")!==false){
-$odam=explode("=",$data)[1];
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-$hisob=file_get_contents("step/hisob.$odam");
-bot('SendMessage',[
-'chat_id'=>$odam,
-'text'=>"<b>✅ So'rovingiz qabul qilindi!</b>
-
-Hisobingizga $hisob $pul qo'shildi",
-'parse_mode'=>'html',
-]);
-$get = file_get_contents("foydalanuvchi/hisob/$odam.txt");
-$get += $hisob;
-file_put_contents("foydalanuvchi/hisob/$odam.txt",$get);
-bot('SendMessage',[
-'chat_id'=>$builder24,
-'text'=>"<b>✅ Foydalanuvchi cheki qabul qilindi!</b>",
-'parse_mode'=>'html',
-]);
-unlink("step/hisob.$odam");
-}
-
-if(mb_stripos($data,"off=")!==false){
-$odam=explode("=",$data)[1];
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-$hisob=file_get_contents("step/hisob.$odam");
-bot('SendMessage',[
-'chat_id'=>$odam,
-'text'=>"<b>❌ So'rovingiz bekor qilindi!</b>",
-'parse_mode'=>'html',
-]);
-bot('SendMessage',[
-'chat_id'=>$builder24,
-'text'=>"<b>❌ Foydalanuvchi cheki bekor qilindi!</b>",
-'parse_mode'=>'html',
-]);
-unlink("step/hisob.$odam");
-}
-
-if($tx=="$tugma3" and joinchat($fid)=="true"){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>📋 Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"$tugma7",'callback_data'=>"taklifnoma"]],
-[['text'=>"$tugma9",'callback_data'=>"promokod"]],
-[['text'=>"$bonusnom",'callback_data'=>"kunlik"]],
-]])
-]);
-}
-
-if($data == "orqaga3" and joinchat($ccid)=="true"){
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('SendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>📋 Quyidagilardan birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"$tugma7",'callback_data'=>"taklifnoma"]],
-[['text'=>"$tugma9",'callback_data'=>"promokod"]],
-[['text'=>"$bonusnom",'callback_data'=>"kunlik"]],
-]])
-]);
-}
-
-if($data=="promokod"){ 
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>Promokodni yuboring:</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'resize_keyboard'=>true,
-'keyboard'=>[
-[['text'=>"◀️ Orqaga"]]
-]])
-]);
-file_put_contents("step/$ccid.txt","getcoin");
-}
-
-if($userstep == 'getcoin'){
-if($text=="◀️ Orqaga"){
-unlink("step/$cid.txt");
-}else{
-$code = file_get_contents("code.txt");
-if($text == $code){
-$promopul = file_get_contents("codemiq.txt");
-$balans = file_get_contents("foydalanuvchi/hisob/$cid.txt");
-$qoshildi = $balans + $promopul;
-file_put_contents("foydalanuvchi/hisob/$cid.txt","$qoshildi");
-bot('sendmessage',[ 
-'chat_id'=>$cid, 
-'text'=>"✅<b> Promokodni to'g'ri yubordingiz va hisobingizga $promopul $pul qo'shildi</b>", 
-'parse_mode'=>"html",
-'reply_markup'=>$menyu,
-]);
-unlink("step/$cid.txt");
-bot('editMessageText',[
-'chat_id'=>"@".$promo."",
-'message_id'=>$post,
-'text'=>"<b>✅ Promokod ishlatildi!</b>
-
-🎫 <b>Promokod:</b> <code>$code</code>
-👤 <b>Foydalangan odam:</b> <a href='tg://user?id=$cid'>$cid</a>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"▶️ Botga kirish",'url'=>"https://t.me/$botname"]],
-]])
-]);
-unlink("code.txt");
-unlink("codemiq.txt"); 
-}else{ 
-bot('sendmessage',[ 
-'chat_id'=>$cid, 
-'text'=>"<b>⚠️ Bunday promokod topilmadi!</b>",
-'parse_mode'=>"html",
-]); 
-}}}
-
-$vaqt = date('d-m-y');
-$frid= $update->callback_query->from->id;
-mkdir("foydalanuvchi/bonus");
-if($data == "kunlik"){
-$bonustime = file_get_contents("foydalanuvchi/bonus/$frid.txt");
-if($bonustime == $vaqt){
-bot("editMessageText",[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>📛 Siz kunlik bonus olib bo'lgansiz!</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"◀️ Orqaga",'callback_data'=>"orqaga3"]],
-]])
-]);
-}else{
-$pulim = file_get_contents("foydalanuvchi/hisob/$frid.txt");
-$plus=$pulim+$bonus;
-file_put_contents("foydalanuvchi/hisob/$frid.txt","$plus");
-file_put_contents("foydalanuvchi/bonus/$frid.txt","$vaqt");
-bot("editMessageText",[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>💸 Kunlik bonus - $bonus $pul
-
-✅ Bonus berildi! ✅</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"◀️ Orqaga",'callback_data'=>"orqaga3"]],
-]])
-]);
-}}
-
-if($data == "taklifnoma" and joinchat($ccid)=="true"){
-$odam=file_get_contents("foydalanuvchi/referal/$ccid.txt");
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>🔗 Sizning taklif havolangiz:</b>
-
-<code>https://t.me/$botname?start=$ccid</code>
-
-<b>1 ta taklif uchun $taklifpul so'm beriladi
-
-Sizning takliflaringiz: $odam ta</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"👥 Do'stlarga yuborish",'url'=>"https://t.me/share/url?url=https://t.me/$botname?start=$ccid"]],
-[['text'=>"◀️ Orqaga",'callback_data'=>"orqaga3"]],
-]])
-]);
-}
-
-if($text == "$tugma4" and joinchat($cid)=="true"){
-$more = explode("\n",$buyurtma);
-$soni = substr_count($buyurtma,"\n");
-$keys=[];
-for ($for = 1; $for <= $soni; $for++) {
-$title=str_replace("\n","",$more[$for]);
-$keys[]=["text"=>"$title","callback_data"=>"idby-$title"];
-$keysboard2 = array_chunk($keys, 5);
-$key = json_encode([
-'inline_keyboard'=>$keysboard2,
-]);
-}
-if($buyurtma != null){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>🗄 Buyurtmalaringiz ro'yxati birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>🤷‍♂️ Sizda aktiv buyurtma topilmadi!</b>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"🔎 Izlab topish",'callback_data'=>"bytopish"]],
-]])
-]);
-unlink("foydalanuvchi/by/buyurtma.$cid");
-}}
-
-if($data=="bytopish" and joinchat($ccid)=="true"){
-bot('deleteMessage',[ 
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
-bot('sendMessage',[
-'chat_id'=>$ccid,
 'text'=>"<b>🆔 Buyurtma IDsini yuboring:</b>",
 'parse_mode'=>"html",
 'reply_markup'=>json_encode([
@@ -3992,19 +1425,20 @@ bot('sendMessage',[
 [['text'=>"◀️ Orqaga"]]
 ]])
 ]);
-file_put_contents("step/$ccid.txt","bytop");
+file_put_contents("step/$cid.step","bytop");
+unlink("step/$cid2.txt");
+unlink("step/$cid.bol");
+unlink("step/$cid.ich");
+unlink("step/$cid.xiz");
 }
-if($userstep=="bytop"){
+if($step=="bytop"){
 if($text=="◀️ Orqaga"){
 unlink("step/$cid.txt");
 }else{
-$byyoq=file_get_contents("buyurtma/$tx/order.txt");
+$byyoq=file_get_contents("buyurtma/$text/order.txt");
 if($byyoq){
 if(is_numeric($text)){
- 
-$api_url = file_get_contents("sozlamalar/pul/api_url.txt");
-$orderstat=json_decode(file_get_contents("$api_url?key=$api&action=status&order=$byyoq"),true);
- 
+$orderstat=json_decode(file_get_contents("$sayt?key=$api&action=status&order=$byyoq"),true);
 $miqdor=$orderstat['remains'];
 $xolati=$orderstat['status'];
 if($xolati=="Pending"){
@@ -4050,87 +1484,40 @@ Qayta urinib ko'ring:",
 ]);
 }}}
 
-if(mb_stripos($data, "idby-")!==false){
-$ex = explode("-",$data);
-$soni = $ex[1];
-$byxolat=file_get_contents("buyurtma/$soni/order.txt");
-$orderstat=json_decode(file_get_contents("https://actualseen.uz/api/v2?key=$api&action=status&order=$byxolat"),true);
-$miqdor=$orderstat['remains'];
-$xolati=$orderstat['status'];
-if($xolati=="Pending"){
-$byxol = "Kutilmoqda";
-}
-if($xolati=="In progress"){
-$byxol = "Bajarilmoqda";
-}
-if($xolati=="Completed"){
-$byxol = "Bajarilgan";
-}
-if($xolati=="Partial"){
-$byxol = "Qisman bajarildi";
-}
-if($xolati=="Processing"){
-$byxol = "Qayta ishlanmoqda";
-}
-if($xolati=="Canceled"){
-$byxol = "Bekor qilingan";
-}
-bot('deleteMessage',[ 
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
+if($text=="$key5" and joinchat($cid)==true){
+if($turi == null){
+bot('sendMessage',[
+'chat_id'=>$cid,
+'text'=>"🤷🏻‍♂ To'lov tizimlari qo'shilmagan!",
 ]);
-bot('sendMessage',[ 
-'chat_id'=>$ccid,
-'text'=>"<b>🆔 Buyurtma ID raqami:</b> <code>$soni</code>
-
-<b>🔐 Buyurtma holati: $byxol</b>
-<b>🗃 Qoldiq miqdori:</b> $miqdor ta", 
-'parse_mode'=>"html", 
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"◀️ Orqaga",'callback_data'=>"orqaby"]],
-]])
-]);
-}
-
-if($data == "orqaby"){
-$kategoriya = file_get_contents("buyurtma/$ccid.txt");
-$more = explode("\n",$kategoriya);
-$soni = substr_count($kategoriya,"\n");
+unlink("step/$cid.bol");
+unlink("step/$cid.ich");
+unlink("step/$cid.xiz");
+}else{
+$turi = file_get_contents("tizim/turi.txt");
+$more = explode("\n",$turi);
+$soni = substr_count($turi,"\n");
 $keys=[];
 for ($for = 1; $for <= $soni; $for++) {
 $title=str_replace("\n","",$more[$for]);
-$keys[]=["text"=>"$title","callback_data"=>"idby-$title"];
-$keysboard2 = array_chunk($keys, 5);
-$key = json_encode([
+$keys[]=["text"=>"$title","callback_data"=>"pay-$title"];
+$keysboard2 = array_chunk($keys, $qator4);
+$payment = json_encode([
 'inline_keyboard'=>$keysboard2,
 ]);
 }
-if($kategoriya != null){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>🗄 Buyurtmalaringiz ro'yxati birini tanlang:</b>",
-'parse_mode'=>'html',
-'reply_markup'=>$key,
-]);
-}else{
-bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-]);
 bot('sendMessage',[
-'chat_id'=>$ccid,
-'text'=>"<b>🤷‍♂️ Sizda aktiv buyurtma topilmadi!</b>",
+'chat_id'=>$cid,
+'text'=>"<b>💳 To'lov tizimlaridan birini tanlang:</b>",
 'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"🔎 Izlab topish",'callback_data'=>"bytopish"]],
-]])
+'reply_markup'=>$payment
 ]);
+unlink("step/$cid.bol");
+unlink("step/$cid.ich");
+unlink("step/$cid.xiz");
 }}
 
-if($tx=="$tugma5" and joinchat($fid)=="true"){
+if($text=="$key6" and joinchat($cid)==true){
 bot('sendMessage',[
 'chat_id'=>$cid,
 'text'=>"<b>📝 Murojaat matnini yuboring:</b>",
@@ -4141,12 +1528,14 @@ bot('sendMessage',[
 [['text'=>"◀️ Orqaga"]],
 ]])
 ]);
-file_put_contents("step/$cid.txt","murojat");
+file_put_contents("step/$cid.step","murojat");
+unlink("step/$cid.bol");
+unlink("step/$cid.ich");
 }
 
-if($userstep=="murojat"){
-if($tx=="◀️ Orqaga"){
-unlink("step/$cid.txt");
+if($step=="murojat"){
+if($text=="◀️ Orqaga"){
+unlink("step/$cid.step");
 }else{
 bot('sendMessage',[
 'chat_id'=>$builder24,
@@ -4167,17 +1556,17 @@ bot('sendMessage',[
 'parse_mode'=>'html',
 'reply_markup'=>$menyu,
 ]);
-unlink("step/$cid.txt");
+unlink("step/$cid.step");
 }}
 
 if(mb_stripos($data,"yozish=")!==false){
 $odam=explode("=",$data)[1];
 bot('deleteMessage',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
 ]);
 bot('sendMessage',[
-'chat_id'=>$ccid,
+'chat_id'=>$cid2,
 'text'=>"<b>Javob matnini yuboring:</b>",
 'parse_mode'=>"html",
 'reply_markup'=>json_encode([
@@ -4186,13 +1575,13 @@ bot('sendMessage',[
 [['text'=>"◀️ Orqaga"]],
 ]])
 ]);
-file_put_contents("step/$ccid.txt","javob");
-file_put_contents("step/$ccid.javob","$odam");
+file_put_contents("step/$cid2.step","javob");
+file_put_contents("step/$cid2.javob","$odam");
 }
 
-if($userstep=="javob"){
-if($tx=="◀️ Orqaga"){
-unlink("step/$cid.txt");
+if($step=="javob"){
+if($text=="◀️ Orqaga"){
+unlink("step/$cid.step");
 unlink("step/$cid.javob");
 }else{
 $murojat=file_get_contents("step/$cid.javob");
@@ -4202,84 +1591,2475 @@ bot('sendMessage',[
 
 $tx",
 'parse_mode'=>'html',
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"Javob yozish",'callback_data'=>"boglanish"]],
-]])
 ]);
 bot('sendMessage',[
 'chat_id'=>$builder24,
 'text'=>"<b>Javob yuborildi</b>",
 'parse_mode'=>"html",
-'reply_markup'=>$main_menuad,
+'reply_markup'=>$menyu,
 ]);
 unlink("step/$murojat.murojat");
-unlink("step/$cid.txt");
+unlink("step/$cid.step");
 unlink("step/$cid.javob");
 }}
 
-if($tx=="$tugma6" and joinchat($fid)=="true"){
+if($text == "🗄 Boshqarish"){
+if(in_array($cid,$admin)){
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Admin paneliga xush kelibsiz!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$panel,
+]);
+unlink("step/$cid.step");
+unlink("step/alijonov.txt");
+unlink("step/test.txt");
+unlink("step/$cid2.txt");
+}}
+
+if($text == "🔎 Foydalanuvchini boshqarish"){
+if(in_array($cid,$admin)){
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Kerakli foydalanuvchining ID raqamini kiriting:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish
+]);
+file_put_contents("step/$cid.step",'iD');
+}}
+
+if($step == "iD"){
+if($tx=="🗄 Boshqarish"){
+unlink("step/$cid.step");
+}else{
+if(in_array($cid,$admin)){
+if(file_exists("pul/$text.txt")){
+file_put_contents("step/alijonov.txt",$text);
+$pul = file_get_contents("pul/$text.txt");
+$odam = file_get_contents("odam/$text.dat");
+$status=file_get_contents("status/$text.txt");
+$ban = file_get_contents("ban/$text.txt");
+if($status == "Oddiy"){
+$vip = "💎 VIP ga qo'shish";
+}
+if($status == "VIP"){
+$vip = "❌ VIP dan olish";
+}
+if($ban == null){
+$bans = "🔔 Banlash";
+}
+if($ban == "ban"){
+$bans = "🔕 Bandan olish";
+}
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Foydalanuvchi topildi!
+
+ID:</b> <a href='tg://user?id=$text'>$text</a>
+<b>Balans: $pul $valyuta
+Takliflar: $odam ta</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"$bans",'callback_data'=>"ban"]],
+[['text'=>"➕ Pul qo'shish",'callback_data'=>"plus"],['text'=>"➖ Pul ayirish",'callback_data'=>"minus"]],
+[['text'=>"$vip",'callback_data'=>"add_vip"]],
+]])
+]);
+unlink("step/$cid.step");
+}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Foydalanuvchi topilmadi.</b>
+
+Qayta urinib ko'ring:",
+'parse_mode'=>'html',
+]);
+}}}}
+
+if($data == "plus"){
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<a href='tg://user?id=$saved'>$saved</a> <b>ning hisobiga qancha pul qo'shmoqchisiz?</b>",
+'parse_mode'=>"html",
+'reply_markup'=>json_encode([
+'resize_keyboard'=>true,
+'keyboard'=>[
+[['text'=>"🗄 Boshqarish"]],
+]])
+]);
+file_put_contents("step/$cid2.step",'plus');
+}
+
+if($step == "plus"){
+if($tx=="🗄 Boshqarish"){
+unlink("step/$cid.step");
+}else{
+if(in_array($cid,$admin)){
+if(is_numeric($text)=="true"){
+bot('sendMessage',[
+'chat_id'=>$saved,
+'text'=>"<b>Adminlar tomonidan hisobingiz $text $valyuta to'ldirildi</b>",
+'parse_mode'=>"html",
+'reply_markup'=>$menu,
+]);
 bot('sendMessage',[
 'chat_id'=>$cid,
-'text'=>"<b>Ma'lumot olish uchun, quyidagi tugmalardan foydalaning:</b>",
+'text'=>"<b>Foydalanuvchi hisobiga $text $valyuta qo'shildi!</b>",
+'parse_mode'=>"html",
+'reply_markup'=>$panel,
+]);
+$pul = file_get_contents("pul/$saved.txt");
+$miqdor = $pul + $text;
+file_put_contents("pul/$saved.txt",$miqdor);
+$oplata = file_get_contents("oplata/$saved.txt");
+$plus = $oplata + $text;
+file_put_contents("oplata/$saved.txt",$plus);
+$refs = file_get_contents("odam/$saved.ref");
+$cash=$text/100*$referal;
+$qosh = $refs + $cash;
+file_put_contents("odam/$refs.txt",$qosh);
+bot('sendMessage',[
+'chat_id'=>$refs,
+'text'=>"<b>Sizning referalingiz hisobini to'ldirdi sizga +$cash $valyuta berildi!</b>",
+'parse_mode'=>"html",
+]);
+unlink("step/alijonov.txt");
+unlink("step/$cid.step");
+}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Faqat raqamlardan foydalaning!</b>",
+'parse_mode'=>'html',
+]);
+}}}}
+
+if($data=="minus"){
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<a href='tg://user?id=$saved'>$saved</a> <b>ning hisobiga qancha pul ayirmoqchisiz?</b>",
+'parse_mode'=>"html",
+'reply_markup'=>json_encode([
+'resize_keyboard'=>true,
+'keyboard'=>[
+[['text'=>"🗄 Boshqarish"]],
+]])
+]);
+file_put_contents("step/$cid2.step",'minus');
+}
+
+if($step == "minus"){
+if($tx=="🗄 Boshqarish"){
+unlink("step/$cid.step");
+}else{
+if(in_array($cid,$admin)){
+if(is_numeric($text)=="true"){
+bot('sendMessage',[
+'chat_id'=>$saved,
+'text'=>"<b>Adminlar tomonidan hisobingizdan $text $valyuta olib tashlandi</b>",
+'parse_mode'=>"html",
+'reply_markup'=>$menu,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Foydalanuvchi hisobidan $text $valyuta olib tashlandi!</b>",
+'parse_mode'=>"html",
+'reply_markup'=>$panel,
+]);
+$pul = file_get_contents("pul/$saved.txt");
+$miqdor = $pul - $text;
+file_put_contents("pul/$saved.txt",$miqdor);
+unlink("step/alijonov.txt");
+unlink("step/$cid.step");
+}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Faqat raqamlardan foydalaning!</b>",
+'parse_mode'=>'html',
+]);
+}}}}
+
+if($data=="ban"){
+$ban = file_get_contents("ban/$saved.txt");
+if($builder24 != $saved){
+if($ban == "ban"){
+unlink("ban/$saved.txt");
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Foydalanuvchi ($saved) bandan olindi!</b>",
+'parse_mode'=>"html",
+]);
+}else{
+file_put_contents("ban/$saved.txt",'ban');
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Foydalanuvchi ($saved) banlandi!</b>",
+'parse_mode'=>"html",
+]);
+}}else{
+bot('answerCallbackQuery',[
+'callback_query_id'=>$qid,
+'text'=>"Asosiy adminlarni blocklash mumkin emas!",
+'show_alert'=>true,
+]);
+}}
+
+if($data=="add_vip"){
+$status = file_get_contents("status/$saved.txt");
+if($status == "VIP"){
+file_put_contents("status/$saved.txt",'Oddiy');
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Foydalanuvchi ($saved) VIP dan olindi!</b>",
+'parse_mode'=>"html",
+]);
+}else{
+file_put_contents("status/$saved.txt",'VIP');
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Foydalanuvchi ($saved) VIP ga qo'shildi!</b>",
+'parse_mode'=>"html",
+]);
+}}
+
+if($text == "✉ Xabarnoma"){
+if(in_array($cid,$admin)){
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Yuboriladigan xabar turini tanlang;</b>",
 'parse_mode'=>'html',
 'reply_markup'=>json_encode([
 'inline_keyboard'=>[
-[['text'=>"📚 Qo'llanma",'callback_data'=>"qollama"]],
-[['text'=>"⚠️ Qoidalar",'callback_data'=>"qoidalar"]],
+[['text'=>"Oddiy xabar",'callback_data'=>"send"]],
+[['text'=>"Forward xabar",'callback_data'=>"forsend"]],
 ]])
 ]);
+}}
+
+if($data == "send"){
+$lich=substr_count($user_id,"\n");
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>$lich ta foydalanuvchiga yuboriladigan xabar matnini yuboring:</b>",
+'parse_mode'=>"html",
+'reply_markup'=>json_encode([
+'resize_keyboard'=>true,
+'keyboard'=>[
+[['text'=>"🗄 Boshqarish"]],
+]])
+]);
+file_put_contents("step/$cid2.step","oddiy");
+}
+if($step=="oddiy"){
+if($tx=="🗄 Boshqarish"){
+unlink("step/$cid.step");
+}else{
+if(in_array($cid,$admin)){
+$lich=substr_count($user_id,"\n");
+bot('sendmessage',[
+'chat_id'=>$cid,
+'text'=>"<b>$lich ta foydalanuvchiga xabar yuborish boshlandi!</b>",
+'parse_mode'=>"html",
+'reply_markup'=>$panel,
+]);
+$lichka = explode("\n",$user_id);
+foreach($lichka as $lichkalar){
+$usr=bot("sendMessage",[
+'chat_id'=>$lichkalar,
+'text'=>$text,
+'parse_mode'=>'HTML'
+]);
+unlink("step/$cid.step");
+}}}}
+if($usr){
+$lich=substr_count($user_id,"\n");
+bot("sendmessage",[
+'chat_id'=>$cid,
+'text'=>"<b>$lich ta foydalanuvchiga muvaffaqiyatli yuborildi</b>",
+'parse_mode'=>'html',
+]);
+unlink("step/$cid.step");
 }
 
-if($data=="tugmaolti" and joinchat($ccid)=="true"){
-bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"<b>Ma'lumot olish uchun, quyidagi tugmalardan foydalaning:</b>",
+if($data == "forsend"){
+$lich=substr_count($user_id,"\n");
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>$lich ta foydalanuvchiga yuboriladigan forward xabarni yuboring:</b>",
+'parse_mode'=>"html",
+'reply_markup'=>json_encode([
+'resize_keyboard'=>true,
+'keyboard'=>[
+[['text'=>"🗄 Boshqarish"]],
+]])
+]);
+file_put_contents("step/$cid2.step","forward");
+}
+if($step=="forward"){
+if($tx=="🗄 Boshqarish"){
+unlink("step/$cid.step");
+}else{
+if(in_array($cid,$admin)){
+$lich=substr_count($user_id,"\n");
+bot('sendmessage',[
+'chat_id'=>$cid,
+'text'=>"<b>$lich ta foydalanuvchiga xabar yuborish boshlandi!</b>",
+'parse_mode'=>"html",
+'reply_markup'=>$panel,
+]);
+$lichka = explode("\n",$user_id);
+foreach($lichka as $lichkalar){
+$fors=bot("forwardMessage",[
+'from_chat_id'=>$cid,
+'chat_id'=>$lichkalar,
+'message_id'=>$mid,
+]);
+unlink("step/$cid.step");
+}}}}
+if($fors){
+$lich=substr_count($user_id,"\n");
+bot("sendmessage",[
+'chat_id'=>$cid,
+'text'=>"<b>$lich ta foydalanuvchiga muvaffaqiyatli yuborildi</b>",
+'parse_mode'=>'html',
+]);
+unlink("step/$cid.step");
+}
+
+if($text == "📊 Statistika"){
+if(in_array($cid,$admin)){
+$obsh = substr_count($user_id,"\n");
+$load = sys_getloadavg();
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>💡 O'rtacha yuklanish:</b> <code>$load[0]</code>
+
+👥 <b>Foydalanuvchilar:</b> $obsh ta",
+'parse_mode'=>'html',
+]);
+}}
+
+if($text == "📢 Kanallar"){
+if(in_array($cid,$admin)){
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
 'parse_mode'=>'html',
 'reply_markup'=>json_encode([
 'inline_keyboard'=>[
-[['text'=>"📚 Qo'llanma",'callback_data'=>"qollama"]],
-[['text'=>"⚠️ Qoidalar",'callback_data'=>"qoidalar"]],
+[['text'=>"🔐 Majburiy obunalar",'callback_data'=>"majburiy"]],
+[['text'=>"🆕️ Promokod uchun",'callback_data'=>"promo"]],
+]])
+]);
+}}
+
+if($data == "kanallar"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"🔐 Majburiy obunalar",'callback_data'=>"majburiy"]],
+[['text'=>"🆕️ Promokod uchun",'callback_data'=>"promo"]],
 ]])
 ]);
 }
 
-if($data == "qollama" and joinchat($ccid)=="true"){
+if($data == "majburiy"){
 bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"$qollama",
-'parse_mode'=>"html",
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Majburiy obunalarni sozlash bo'limidasiz:</b>",
+'parse_mode'=>'html',
 'reply_markup'=>json_encode([
 'inline_keyboard'=>[
-[['text'=>"◀️ Orqaga",'callback_data'=>"tugmaolti"]],
+[['text'=>"📑 Kanallar ro'yxati",'callback_data'=>"royxat"]],
+[['text'=>"➕ Qo'shish",'callback_data'=>"qoshish"],['text'=>"🗑 O'chirish",'callback_data'=>"ochirish"]],
+[['text'=>"◀️ Orqaga",'callback_data'=>"kanallar"]],
 ]])
 ]);
 }
 
-if($data == "qoidalar" and joinchat($ccid)=="true"){
+if($data == "qoshish"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$cid2,
+'text'=>"📢 <b>Kerakli kanalni manzilini yuboring:
+
+Namuna:</b> @HaydarovUz",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish,
+]);
+file_put_contents("step/$cid2.step","qo'shish");
+}
+
+if($step == "qo'shish"){
+if($tx=="🗄 Boshqarish"){
+unlink("step/$cid.step");
+}else{
+if(in_array($cid,$admin)){
+if(mb_stripos($text, "@")!==false){
+if($kanal == null){
+file_put_contents("admin/kanal.txt",$text);
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>$text - kanal qo'shildi!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$panel
+]);
+unlink("step/$cid.step");
+}else{
+file_put_contents("admin/kanal.txt","$kanal\n$text");
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>$text - kanal qo'shildi!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$panel
+]);
+unlink("step/$cid.step");
+}}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Qayta urunib ko'ring:</b>",
+'parse_mode'=>'html',
+]);
+}}}}
+
+if($data == "ochirish"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Barcha kanallar o'chirildi!</b>",
+'parse_mode'=>'html',
+]);
+deleteFolder("admin/kanal.txt");
+}
+
+if($data == "royxat"){
+$soni = substr_count($kanal,"@");
+if($kanal == null){
 bot('editMessageText',[
-'chat_id'=>$ccid,
-'message_id'=>$cmid,
-'text'=>"$qoida",
-'parse_mode'=>"html",
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Hech qanday kanallar ulanmagan!</b>",
+'parse_mode'=>'html',
 'reply_markup'=>json_encode([
 'inline_keyboard'=>[
-[['text'=>"◀️ Orqaga",'callback_data'=>"tugmaolti"]],
+[['text'=>"◀️ Orqaga",'callback_data'=>"majburiy"]],
+]])
+]);
+}else{
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>📢 Kanallar ro'yxati:</b>
+
+$kanal
+
+<b>Ulangan kanallar soni:</b> $soni ta",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"◀️ Orqaga",'callback_data'=>"majburiy"]],
+]])
+]);
+}}
+
+if($data == "promo"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$cid2,
+'text'=>"📢 <b>Kerakli kanalni manzilini yuboring:
+
+Namuna:</b> @HaydarovUz",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish,
+]);
+file_put_contents("step/$cid2.step","promokod");
+}
+
+if(($step == "promokod") and (in_array($cid,$admin))){
+if($tx=="🗄 Boshqarish"){
+unlink("step/$cid.step");
+}else{
+if(mb_stripos($text,"@")!==false){
+$get = bot('getChat',[
+'chat_id'=>$text
+]);
+$types = $get->result->type;
+$ch_name = $get->result->title;
+$ch_user = $get->result->username;
+if(getAdmin($ch_user)== true){
+file_put_contents("admin/kanal2.txt","@$ch_user");
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>$text - kanal saqlandi!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$panel,
+]);
+unlink("step/$cid.step");
+}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Bot ushbu kanalda admin emas yoki noto'g'ri kanal manzili yuborildi!</b>",
+'parse_mode'=>'html',
+]);
+}}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"⚠️ <b>Kanal manzili kiritishda xatolik!</b>
+
+Qayta urinib ko'ring:",
+'parse_mode'=>'html',
+]);
+}}}
+
+if($text == "📋 Adminlar"){
+if(in_array($cid,$admin)){
+if($cid == $builder24){
+bot('SendMessage',[
+'chat_id'=>$builder24,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"➕ Yangi admin qo'shish",'callback_data'=>"add"]],
+[['text'=>"📑 Ro'yxat",'callback_data'=>"list"],['text'=>"🗑 O'chirish",'callback_data'=>"remove"]],
+]])
+]);
+}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"📑 Ro'yxat",'callback_data'=>"list"]],
+]])
+]);
+}}}
+
+if($data == "admins"){
+if($cid2 == $builder24){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);	
+bot('SendMessage',[
+'chat_id'=>$builder24,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"➕ Yangi admin qo'shish",'callback_data'=>"add"]],
+[['text'=>"📑 Ro'yxat",'callback_data'=>"list"],['text'=>"🗑 O'chirish",'callback_data'=>"remove"]],
+]])
+]);
+}else{
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);	
+bot('SendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"📑 Ro'yxat",'callback_data'=>"list"]],
+]])
+]);
+}}
+
+if($data == "list"){
+$admins=file_get_contents("admin/admins.txt");
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>👮 Adminlar ro'yxati:</b>
+
+$admins",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"◀️ Orqaga",'callback_data'=>"admins"]],
 ]])
 ]);
 }
+
+if($data == "add"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$builder24,
+'text'=>"*Kerakli iD raqamni kiriting:*",
+'parse_mode'=>'MarkDown',
+'reply_markup'=>$boshqarish
+]);
+file_put_contents("step/$cid2.step",'add-admin');
+}
+
+if($step=="add-admin" and $cid == $builder24){
+if($tx=="🗄 Boshqarish"){
+unlink("step/$cid.step");
+}else{
+if(is_numeric($text)=="true"){
+if($text != $builder24){
+file_put_contents("admin/admins.txt","$admins\n$text");
+bot('SendMessage',[
+'chat_id'=>$builder24,
+'text'=>"✅ *$text* endi botda admin",
+'parse_mode'=>'MarkDown',
+'reply_markup'=>$panel
+]);
+unlink("step/$cid.step");
+}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Kerakli iD raqamni kiriting:</b>",
+'parse_mode'=>'html',
+]);
+}}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Kerakli iD raqamni kiriting:</b>",
+'parse_mode'=>'html',
+]);
+}}}
+
+if($data == "remove"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$builder24,
+'text'=>"<b>Kerakli iD raqamni kiriting:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish
+]);
+file_put_contents("step/$cid2.step",'remove-admin');
+}
+
+if($step == "remove-admin" and $cid == $builder24){
+if($tx=="🗄 Boshqarish"){
+unlink("step/$cid.step");
+}else{
+if(is_numeric($text)=="true"){
+if($text != $builder24){
+$files=file_get_contents("admin/admins.txt");
+$file = str_replace("\n".$text."","",$files);
+file_put_contents("admin/admins.txt",$file);
+bot('SendMessage',[
+'chat_id'=>$builder24,
+'text'=>"✅ *$text* endi botda admin emas",
+'parse_mode'=>'MarkDown',
+'reply_markup'=>$panel
+]);
+unlink("step/$cid.step");
+}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Kerakli iD raqamni kiriting:</b>",
+'parse_mode'=>'html',
+]);
+}}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Kerakli iD raqamni kiriting:</b>",
+'parse_mode'=>'html',
+]);
+}}}
+
+if($text == "🎟 Promokod"){
+if(in_array($cid,$admin)){
+if($promo != null){
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Promokod uchun nom yuboring:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish,
+]);
+file_put_contents("step/$cid.step",'pro');
+}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Promokod yuboriladigan kanal ulanmagan!</b>",
+'parse_mode'=>'html',
+]);
+}}}
+
+if($step == "pro"){
+if($tx=="🗄 Boshqarish"){
+unlink("step/$cid.step");
+}else{
+if(in_array($cid,$admin)){
+file_put_contents("step/kod.txt",$text);
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Qabul qilindi.</b>
+
+Endi esa, promokod qiymatini yuboring:",
+'parse_mode'=>'html',
+]);
+file_put_contents("step/$cid.step",'Next_Promo');
+}}}
+
+if($step == "Next_Promo"){
+if($tx=="🗄 Boshqarish"){
+unlink("step/$cid.step");
+}else{
+if(in_array($cid,$admin)){
+if(is_numeric($text)=="true"){
+file_put_contents("step/money.txt",$text);
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Promokod $promo kanaliga yuborildi!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$panel,
+]);
+$msg = bot('SendMessage',[
+'chat_id'=>$promo,
+'text'=>"<b>💡 Yangi Promokod!</b>
+
+<b>🎫 Promokod:</b> <code>$kod</code>
+<b>💵 Promokod qiymati:</b> $text $valyuta",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"▶️ Botga kirish",'url'=>"https://t.me/$bot"]],
+]])
+])->result->message_id;
+file_put_contents("step/mid.txt",$msg);
+unlink("step/$cid.step");
+}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Faqat raqamlardan foydalaning!</b>",
+'parse_mode'=>'html',
+]);
+}}}}
+
+if($text == "⭐️ Bot dizayni"){
+if(in_array($cid,$admin)){
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"1️⃣ <b>Bo'limlar qatori:</b> $qator1 qator
+2️⃣ <b>Ichki bo'lim qatori:</b> $qator2 qator
+3️⃣ <b>Xizmatlar qatori:</b> $qator3 qator
+4️⃣ <b>To'lov tizim qatori:</b> $qator4 qator",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"1",'callback_data'=>"qator-qator1"],['text'=>"2",'callback_data'=>"qator-qator2"],['text'=>"3",'callback_data'=>"qator-qator3"],['text'=>"4",'callback_data'=>"qator-qator4"]],
+]])
+]);
+}}
+
+if($data == "qatorlar"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$cid2,
+'text'=>"1️⃣ <b>Bo'limlar qatori:</b> $qator1 qator
+2️⃣ <b>Ichki bo'lim qatori:</b> $qator2 qator
+3️⃣ <b>Xizmatlar qatori:</b> $qator3 qator
+4️⃣ <b>To'lov tizim qatori:</b> $qator4 qator",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"1",'callback_data'=>"qator-qator1"],['text'=>"2",'callback_data'=>"qator-qator2"],['text'=>"3",'callback_data'=>"qator-qator3"],['text'=>"4",'callback_data'=>"qator-qator4"]],
+]])
+]);
+}
+
+if(mb_stripos($data, "qator-")!==false){
+$ex = explode("-",$data);
+$qator = $ex[1];
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Yangi qiymatni tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"1⃣",'callback_data'=>"qiymat-$qator-1"],['text'=>"2⃣",'callback_data'=>"qiymat-$qator-2"],['text'=>"3⃣",'callback_data'=>"qiymat-$qator-3"]],
+[['text'=>"◀️ Orqaga",'callback_data'=>"qatorlar"]],
+]])
+]);
+}
+
+if(mb_stripos($data, "qiymat-")!==false){
+$ex = explode("-",$data);
+$qator = $ex[1];
+$qiymat = $ex[2];
+file_put_contents("tugma/$qator.txt",$qiymat);
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Muvaffaqiyatli o'zgartirildi!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"◀️ Orqaga",'callback_data'=>"qatorlar"]],
+]])
+]);
+}
+
+if($text == "⚙ Asosiy sozlamalar"){
+if(in_array($cid,$admin)){
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>⚙️ Asosiy sozlamalar bo'limiga xush kelibsiz!</b>
+
+<i>Nimani o'zgartiramiz?</i>",
+'parse_mode'=>'html',
+'reply_markup'=>$asosiy,
+]);
+}}
+
+if($tx=="🔑 API sozlash"){
+if(in_array($cid,$admin)){
+if($api==null){
+$ap1="<b>kiritilmagan</b>";
+$apt="🆕 APIni kiritish";
+$sayt1="<b>kiritilmagan</b>";
+}else{
+$ap1 = "<code>$api</code>"; 
+$apt="🆕 APIni almashtirish";
+$sayt1="<code>$sayt</code>";
+}
+$balance= json_decode(file_get_contents("$sayt?key=$api&action=balance"),true);
+$valyuta=$balance['currency'];
+if($balance['balance']==null){
+$balans = "Mavjud emas";
+}else{
+$balans = "".$balance['balance']." $valyuta";
+}
+bot('sendMessage',[
+'chat_id'=>$cid,
+'text'=>"📄<b> API ma'lumotlari:</b>
+➖➖➖➖➖➖➖➖➖➖➖
+<b>API havola:</b>
+$sayt1
+
+<b>API kalit:</b>
+$ap1
+
+<b>API balans:</b>
+$balans
+➖➖➖➖➖➖➖➖➖➖➖
+<i>Quyidagilardan birini tanlang:</i>",
+'parse_mode'=>"html",
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"$apt",'callback_data'=>"yangiapi"]],
+]])
+]);
+}}
+
+if($data == "api1"){
+if($api==null){
+$ap1="<b>kiritilmagan</b>";
+$apt="🆕 APIni kiritish";
+$sayt1="<b>kiritilmagan</b>";
+}else{
+$ap1 = "<code>$api</code>"; 
+$apt="🆕 APIni almashtirish";
+$sayt1="<code>$sayt</code>";
+}
+$balance= json_decode(file_get_contents("$sayt?key=$api&action=balance"),true);
+$valyuta=$balance['currency'];
+if($balance['balance']==null){
+$balans = "Mavjud emas";
+}else{
+$balans = "".$balance['balance']." $valyuta";
+}
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"📄<b> API ma'lumotlari:</b>
+➖➖➖➖➖➖➖➖➖➖➖
+<b>API havola:</b>
+$sayt1
+
+<b>API kalit:</b>
+$ap1
+
+<b>API balans:</b>
+$balans
+➖➖➖➖➖➖➖➖➖➖➖
+<i>Quyidagilardan birini tanlang:</i>",
+'parse_mode'=>"html",
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"$apt",'callback_data'=>"yangiapi"]],
+]])
+]);
+}
+
+if($data == "yangiapi"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Kerakli saytning API qo'llanmasida ko'rsatilgan API havolani yuboring: 
+ 
+Masalan:</b> <code>https://gramapi.uz/api/v2</code>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish,
+]);
+file_put_contents("step/$cid2.step",'manzil');
+}
+
+if($step == "manzil"){ 
+if(mb_stripos($text, "api/v")!==false){ 
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step"); 
+}else{ 
+file_put_contents("admin/sayt.txt","$tx"); 
+bot('sendMessage',[ 
+'chat_id'=>$cid, 
+'text'=>"<b>$tx dan olingan API kalitni yuboring:</b>", 
+'parse_mode'=>"html", 
+]); 
+file_put_contents("step/$cid.step","api-$text"); 
+}}else{ 
+bot('sendMessage',[ 
+'chat_id'=>$cid, 
+'text'=>"<b>Namuna:</b> <code>https://gramapi.uz/api/v2</code>", 
+'parse_mode'=>"html", 
+]); 
+}}
+
+if(mb_stripos($step, "api-")!==false){ 
+$sayti = explode("-",$step)[1]; 
+if($tx=="🗄 Boshqarish"){ 
+unlink("admin/sayt.txt"); 
+unlink("step/$cid.step"); 
+}else{
+$sayt=file_get_contents("admin/sayt.txt"); 
+$balance= json_decode(file_get_contents("$sayt?key=$text&action=balance"),true); 
+$valyuta=$balance['currency']; 
+if($balance['balance']==null){ 
+bot('sendMessage',[ 
+'chat_id'=>$cid, 
+'text'=>"<b>$sayt dan olingan API kalitni yuboring:</b>", 
+'parse_mode'=>"html", 
+]);
+}else{
+file_put_contents("admin/api.txt","$tx"); 
+bot('sendMessage',[ 
+'chat_id'=>$cid, 
+'text'=>"<b>API kalit qabul qilindi! 
+ 
+API balans:</b> ".$balance['balance']." $valyuta", 
+'parse_mode'=>"html", 
+'reply_markup'=>$asosiy, 
+]); 
+unlink("step/$cid.step"); 
+}}}
+
+$delturi = file_get_contents("tizim/turi.txt");
+$delmore = explode("\n",$delturi);
+$delsoni = substr_count($delturi,"\n");
+$key=[];
+for ($delfor = 1; $delfor <= $delsoni; $delfor++) {
+$title=str_replace("\n","",$delmore[$delfor]);
+$key[]=["text"=>"$title - o'chirish","callback_data"=>"del-$title"];
+$keyboard2 = array_chunk($key, $qator4);
+$keyboard2[] = [['text'=>"➕ Yangi to'lov tizimi qo'shish",'callback_data'=>"new"]];
+$pay = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+
+if($text=="⚖️ Foiz qo'yish" and in_array($cid,$admin)){
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>💵 Bot xizmatlari uchun kursni yuboring:
+
+Masalan:</b> 5",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish,
+]);
+put("step/$cid.step","upkurs");
+}
+
+if($step=="upkurs"){
+if($tx=="🗄 Boshqarish"){
+unlink("step/$cid.step");
+}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>🛍 Bot xizmatlari uchun foizni yuboring:
+
+Masalan:</b> 5",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish,
+]);
+put("step/$cid.step","updFoiz");
+}}
+
+if($step=="updFoiz"){
+if($tx=="🗄 Boshqarish"){
+unlink("step/$cid.step");
+}else{
+file_put_contents("admin/foiz.txt","$text");
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>💎 VIP xizmatlari uchun foizni yuboring:
+
+Masalan:</b> 5",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish,
+]);
+put("step/$cid.step","up2");
+}}
+
+
+if($step=="up2"){
+if($tx=="🗄 Boshqarish"){
+unlink("step/$cid.step");
+}else{
+file_put_contents("admin/foiz2.txt","$text");
+sms($cid,"<b>✅ Malumotlar saqlandi!</b>",$panel);
+unlink("step/$cid.step");
+}}
+
+if($text == "💳 Hamyonlar"){
+if(in_array($cid,$admin)){
+if($turi == null){
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"➕ Yangi to'lov tizimi qo'shish",'callback_data'=>"new"]],
+]])
+]);
+}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$pay
+]);
+}}}
+
+if($data == "hamyon"){
+if($turi == null){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"➕ Yangi to'lov tizimi qo'shish",'callback_data'=>"new"]],
+]])
+]);
+}else{
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$pay
+]);
+}}
+
+if(mb_stripos($data,"del-")!==false){
+$ex = explode("-",$data);
+$tur = $ex[1];
+$k = str_replace("\n".$tur."","",$turi);
+file_put_contents("tizim/turi.txt",$k);
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"$tur - <b>To'lov tizimi olib tashlandi.</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"◀️ Orqaga",'callback_data'=>"hamyon"]],
+]])
+]);
+deleteFolder("tizim/$tur");
+}
+
+if($data == "new"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Yangi to'lov tizimi nomini yuboring:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish
+]);
+file_put_contents("step/$cid2.step",'turi');
+}
+
+if($step == "turi"){
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step"); 
+}else{
+if(in_array($cid,$admin)){
+mkdir("tizim/$text");
+file_put_contents("tizim/turi.txt","$turi\n$text");
+file_put_contents("step/test.txt",$text);
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Ushbu to'lov tizimidagi hamyoningiz raqamini yuboring:</b>",
+'parse_mode'=>'html',
+]);
+file_put_contents("step/$cid.step",'wallet');
+}}}
+
+if($step == "wallet"){
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step"); 
+}else{
+if(in_array($cid,$admin)){
+if(is_numeric($text)=="true"){
+file_put_contents("tizim/$test/wallet.txt","$wallet\n$text");
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Ushbu to'lov tizimi orqali hisobni to'ldirish bo'yicha ma'lumotni yuboring:</b>
+
+<i>Misol uchun, Ushbu to'lov tizimi orqali pul yuborish jarayonida izoh kirita olmasligingiz mumkin. Ushbu holatda, biz bilan bog'laning. Havola: @Builder24</i>",
+'parse_mode'=>'html',
+]);
+file_put_contents("step/$cid.step",'addition');
+}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Faqat raqamlardan foydalaning!</b>",
+'parse_mode'=>'html',
+]);
+}}}}
+
+if($step == "addition"){
+if(in_array($cid,$admin)){
+if(isset($text)){
+file_put_contents("tizim/$test/addition.txt","$addition\n$text");
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Yangi to'lov tizimi qo'shildi!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$asosiy,
+]);
+unlink("step/$cid.step");
+unlink("step/test.txt");
+}}}
+
+if($text == "🛍 Xizmatlar"){
+if(in_array($cid,$admin)){
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"📂 Bo'limlarni sozlash",'callback_data'=>"bolim"]],
+[['text'=>"📂 Ichki bo'lim sozlash",'callback_data'=>"ichki"]],
+[['text'=>"🛍 Xizmatlarni sozlash",'callback_data'=>"xizmat"]],
+[['text'=>"🗑 Barchasini tozalash",'callback_data'=>"toza"]],
+]])
+]);
+}}
+
+if($data == "buy"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"📂 Bo'limlarni sozlash",'callback_data'=>"bolim"]],
+[['text'=>"📂 Ichki bo'lim sozlash",'callback_data'=>"ichki"]],
+[['text'=>"🛍 Xizmatlarni sozlash",'callback_data'=>"xizmat"]],
+[['text'=>"🗑 Barchasini tozalash",'callback_data'=>"toza"]],
+]])
+]);
+}
+
+if($data == "toza"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>⚠️ Ushbu holatda xizmatlarni tozalasangiz, keyinchalik qayta tiklab bo'lmaydi</b>
+
+Shu bilan birgalikda bo'lim, ichki bo'lim va xizmatlar barchasi o'chiriladi!",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"✅ Tasdiqlash",'callback_data'=>"barcha2"]],
+[['text'=>"◀️ Orqaga",'callback_data'=>"buy"]],
+]])
+]);
+}
+
+if($data=="barcha2"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Barcha malumotlar tozlalandi</b>",
+'parse_mode'=>"html",
+]);
+deleteFolder("nakrutka/");
+}
+
+if($data == "bolim"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"➕ Yangi bo'lim qo'shish",'callback_data'=>"newFol"]],
+[['text'=>"📝 Tahrirlash",'callback_data'=>"editFol"]],
+[['text'=>"🗑 O'chirish",'callback_data'=>"delFol"]],
+[['text'=>"◀️ Orqaga",'callback_data'=>"buy"]]
+]])
+]);
+}
+
+if($data == "ichki"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"➕ Ichki bo'lim qo'shish",'callback_data'=>"newFold"]],
+[['text'=>"📝 Tahrirlash",'callback_data'=>"editFold"]],
+[['text'=>"🗑 O'chirish",'callback_data'=>"delFold"]],
+[['text'=>"◀️ Orqaga",'callback_data'=>"buy"]]
+]])
+]);
+}
+
+if($data == "xizmat"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"➕ Yangi xizmat qo'shish",'callback_data'=>"newXiz"]],
+[['text'=>"📝 Tahrirlash",'callback_data'=>"editXiz"]],
+[['text'=>"🗑 O'chirish",'callback_data'=>"delXiz"]],
+[['text'=>"◀️ Orqaga",'callback_data'=>"buy"]]
+]])
+]);
+}
+
+if($data == "editFol"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"📝 Nomini o'zgartirish",'callback_data'=>"editFols"]],
+[['text'=>"◀️ Orqaga",'callback_data'=>"buy"]]
+]])
+]);
+}
+
+if($data == "editFold"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"📝 Nomini o'zgartirish",'callback_data'=>"editFolds"]],
+[['text'=>"◀️ Orqaga",'callback_data'=>"buy"]]
+]])
+]);
+}
+
+if($data == "editXiz"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"📝 Nomini o'zgartirish",'callback_data'=>"editNomi"]],
+[['text'=>"📝 Tavsifni o'zgartirish",'callback_data'=>"editXizmat-info"]],
+[['text'=>"📝 Servis IDni o'zgartirish",'callback_data'=>"editXizmat-id"]],
+[['text'=>"◀️ Orqaga",'callback_data'=>"buy"]]
+]])
+]);
+}
+
+$bolim = file_get_contents("nakrutka/bolim.txt");
+$more = explode("\n",$bolim);
+$soni = substr_count($bolim,"\n");
+$key=[];
+for ($for = 1; $for <= $soni; $for++) {
+$key[]=["text"=>"$more[$for]","callback_data"=>"editFolss-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator1);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$editFol = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+
+if($data == "editFols"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$editFol
+]);
+}
+
+
+if(mb_stripos($data, "editFolss-")!==false){
+$ex = explode("-",$data)[1];
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Yangi qiymatni kiriting:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish
+]);
+file_put_contents("step/$cid2.step","editFol-$ex");
+}
+
+if(mb_stripos($step, "editFol-")!==false){
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step"); 
+}else{
+$ex = explode("-",$step)[1];
+if(in_array($cid,$admin)){
+$bolim = file_get_contents("nakrutka/bolim.txt");
+$str = str_replace($ex,$text,$bolim);
+file_put_contents("nakrutka/bolim.txt",$str);
+rename("nakrutka/$ex","nakrutka/$text");
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Muvaffaqiyatli o'zgartirildi.</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$panel
+]);
+unlink("step/$cid.step");
+}}}
+
+$bolim = file_get_contents("nakrutka/bolim.txt");
+$more = explode("\n",$bolim);
+$soni = substr_count($bolim,"\n");
+$key=[];
+for ($for = 1; $for <= $soni; $for++) {
+$key[]=["text"=>"$more[$for]","callback_data"=>"editFolds-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator1);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$editFold = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+
+if($data == "editFolds"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$editFold
+]);
+}
+
+if(mb_stripos($data, "editFolds-")!==false){
+$bolim = explode("-",$data)[1];
+$ichki = file_get_contents("nakrutka/$bolim/ichki.txt");
+file_put_contents("step/$cid2.bol","$bolim");
+$more = explode("\n",$ichki);
+$soni = substr_count($ichki,"\n");
+$key=[];
+for ($for = 1; $for <= $soni; $for++) {
+$key[]=["text"=>"$more[$for]","callback_data"=>"editFoldm-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator2);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$editFolds = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+if($ichki == null){
+bot('answerCallbackQuery',[
+'callback_query_id'=>$qid,
+'text'=>"Hech narsa topilmadi!",
+'show_alert'=>true,
+]);
+}else{
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$editFolds
+]);
+}}
+
+if(mb_stripos($data, "editFoldm-")!==false){
+$ex = explode("-",$data)[1];
+$bolim = file_get_contents("step/$cid2.bol");
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Yangi qiymatni kiriting:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish
+]);
+file_put_contents("step/$cid2.step","editFoldms-$ex-$bolim");
+}
+
+if(mb_stripos($step, "editFoldms-")!==false){
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step"); 
+}else{
+$ex = explode("-",$step)[1];
+$bolim = explode("-",$step)[2];
+if(in_array($cid,$admin)){
+if(isset($text)){
+$ichki = file_get_contents("nakrutka/$bolim/ichki.txt");
+$str = str_replace($ex,$text,$ichki);
+file_put_contents("nakrutka/$bolim/ichki.txt",$str);
+rename("nakrutka/$bolim/$ex","nakrutka/$bolim/$text");
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Muvaffaqiyatli o'zgartirildi.</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$panel,
+]);
+unlink("step/$cid.step");
+}}}}
+
+$bolim = file_get_contents("nakrutka/bolim.txt");
+$more = explode("\n",$bolim);
+$soni = substr_count($bolim,"\n");
+$key=[];
+for ($for = 1; $for <= $soni; $for++) {
+$key[]=["text"=>"$more[$for]","callback_data"=>"editNoms-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator1);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$editNom = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+
+if($data == "editNomi"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$editNom
+]);
+}
+
+if(mb_stripos($data, "editNoms-")!==false){
+$bolim = explode("-",$data)[1];
+file_put_contents("step/$cid2.bol","$bolim");
+$ichki = file_get_contents("nakrutka/$bolim/ichki.txt");
+$more = explode("\n",$ichki);
+$soni = substr_count($ichki,"\n");
+$key=[];
+for ($for = 1; $for <= $soni; $for++) {
+$key[]=["text"=>"$more[$for]","callback_data"=>"editx-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator2);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$editNomi = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$editNomi
+]);
+}
+
+if(mb_stripos($data, "editx-")!==false){
+$ichki = explode("-",$data)[1];
+$bolim = file_get_contents("step/$cid2.bol");
+$xizmat = file_get_contents("nakrutka/$bolim/$ichki/xizmat.txt");
+file_put_contents("step/$cid2.ich","$ichki");
+if($xizmat == null){
+bot('answerCallbackQuery',[
+'callback_query_id'=>$qid,
+'text'=>"Hech narsa topilmadi!",
+'show_alert'=>true,
+]);
+}else{
+$ids = explode("\n",$xizmat);
+$soni = substr_count($xizmat,"\n");
+foreach($ids as $id){
+$key = [];
+$text = "";
+for ($for = 1; $for <= $soni; $for++) {
+$text .= "<b>$for.</b> ".$ids[$for]."\n";
+$key[]=["text"=>"$for","callback_data"=>"editNomlari-".$ids[$for]];
+}
+$keysboard2 = array_chunk($key, $qator3);
+$keysboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$editNomlari = json_encode([
+'inline_keyboard'=>$keysboard2,
+]);
+}
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>
+
+$text",
+'parse_mode'=>'html',
+'reply_markup'=>$editNomlari
+]);
+}}
+
+if(mb_stripos($data, "editNomlari-")!==false){
+$xiz = explode("-",$data)[1];
+$bolim = file_get_contents("step/$cid2.bol");
+$ichki = file_get_contents("step/$cid2.ich");
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Yangi qiymatni kiriting:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish
+]);
+file_put_contents("step/$cid2.step","editNomi-$xiz-$bolim-$ichki");
+}
+
+if(mb_stripos($step, "editNomi-")!==false){
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step"); 
+}else{
+$xiz = explode("-",$step)[1];
+$bolim = explode("-",$step)[2];
+$ichki = explode("-",$step)[3];
+if(in_array($cid,$admin)){
+if(isset($text)){
+$xizmat = file_get_contents("nakrutka/$bolim/$ichki/xizmat.txt");
+$str = str_replace($xiz,$text,$xizmat);
+file_put_contents("nakrutka/$bolim/$ichki/xizmat.txt",$str);
+rename("nakrutka/$bolim/$ichki/$xiz","nakrutka/$bolim/$ichki/$text");
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Muvaffaqiyatli o'zgartirildi.</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$panel
+]);
+unlink("step/$cid.step");
+unlink("step/$cid.txt");
+}}}}
+
+if(mb_stripos($data, "editXizmat-")!==false){
+$nomi = explode("-",$data)[1];
+file_put_contents("step/$cid2.txt",$nomi);
+$bolim = file_get_contents("nakrutka/bolim.txt");
+$more = explode("\n",$bolim);
+$soni = substr_count($bolim,"\n");
+$key=[];
+for ($for = 1; $for <= $soni; $for++) {
+$key[]=["text"=>"$more[$for]","callback_data"=>"editXizmats-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator1);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$editXizmat = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$editXizmat
+]);
+}
+
+if(mb_stripos($data, "editXizmats-")!==false){
+$bolim = explode("-",$data)[1];
+file_put_contents("step/$cid2.bol",$bolim);
+$ichki = file_get_contents("nakrutka/$bolim/ichki.txt");
+$more = explode("\n",$ichki);
+$soni = substr_count($ichki,"\n");
+$key=[];
+for ($for = 1; $for <= $soni; $for++) {
+$key[]=["text"=>"$more[$for]","callback_data"=>"editXt-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator2);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$editXizmat = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$editXizmat
+]);
+}
+
+if(mb_stripos($data, "editXt-")!==false){
+$ichki = explode("-",$data)[1];
+$bolim = file_get_contents("step/$cid2.bol");
+$xizmat = file_get_contents("nakrutka/$bolim/$ichki/xizmat.txt");
+file_put_contents("step/$cid2.ich","$ichki");
+if($xizmat == null){
+bot('answerCallbackQuery',[
+'callback_query_id'=>$qid,
+'text'=>"Hech narsa topilmadi!",
+'show_alert'=>true,
+]);
+}else{
+$ids = explode("\n",$xizmat);
+$soni = substr_count($xizmat,"\n");
+foreach($ids as $id){
+$key = [];
+$text = "";
+for ($for = 1; $for <= $soni; $for++) {
+$text .= "<b>$for.</b> ".$ids[$for]."\n";
+$key[]=["text"=>"$for","callback_data"=>"editXts-".$ids[$for]];
+}
+$keyboard2 = array_chunk($key, $qator3);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$editX = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>
+
+$text",
+'parse_mode'=>'html',
+'reply_markup'=>$editX
+]);
+}}
+
+if(mb_stripos($data, "editXts-")!==false){
+$xiz = explode("-",$data)[1];
+$ichki = file_put_contents("step/$cid2.ich");
+$bolim = file_get_contents("step/$cid2.bol");
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Yangi qiymatni kiriting:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish
+]);
+file_put_contents("step/$cid2.step","editXizmatlar-$xiz-$bolim-$ichki");
+}
+
+if(mb_stripos($step, "editXizmatlar-")!==false){
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step"); 
+}else{
+$xiz = explode("-",$step)[1];
+$bolim = explode("-",$step)[2];
+$ichki = explode("-",$step)[3];
+$ex = file_get_contents("step/$cid.txt");
+if(in_array($cid,$admin)){
+if(isset($text)){
+file_put_contents("nakrutka/$bolim/$ichki/$xiz/$ex.txt",$text);
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Muvaffaqiyatli o'zgartirildi.</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$panel,
+]);
+unlink("step/$cid.step");
+unlink("step/$cid.txt");
+}}}}
+
+$bolim = file_get_contents("nakrutka/bolim.txt");
+$more = explode("\n",$bolim);
+$soni = substr_count($bolim,"\n");
+$key=[];
+for ($for = 1; $for <= $soni; $for++) {
+$key[]=["text"=>"$more[$for]","callback_data"=>"delFols-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator1);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$delFol = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+
+if($data == "delFol"){
+if($bolim == null){
+bot('answerCallbackQuery',[
+'callback_query_id'=>$qid,
+'text'=>"Hech narsa topilmadi!",
+'show_alert'=>true,
+]);
+}else{
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$delFol
+]);
+}}
+
+if(mb_stripos($data, "delFols-")!==false){
+$ex = explode("-",$data)[1];
+$k = str_replace("\n".$ex."","",$bolim);
+file_put_contents("nakrutka/bolim.txt",$k);
+deleteFolder("nakrutka/$ex");
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>O'chirish yakunlandi!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$panel,
+]);
+}
+
+$bolim = file_get_contents("nakrutka/bolim.txt");
+$more = explode("\n",$bolim);
+$soni = substr_count($bolim,"\n");
+$key=[];
+for ($for = 1; $for <= $soni; $for++) {
+$key[]=["text"=>"$more[$for]","callback_data"=>"delFolds-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator1);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$delFold = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+
+if($data == "delFold"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$delFold
+]);
+}
+
+if(mb_stripos($data, "delFolds-")!==false){
+$bolim = explode("-",$data)[1];
+$ichki = file_get_contents("nakrutka/$bolim/ichki.txt");
+$more = explode("\n",$ichki);
+$soni = substr_count($ichki,"\n");
+$key=[];
+for ($for = 1; $for <= $soni; $for++) {
+$key[]=["text"=>"$more[$for]","callback_data"=>"delFolm-".$more[$for]."-".$bolim];
+$keyboard2 = array_chunk($key, $qator2);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$delFolds = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+if($ichki == null){
+bot('answerCallbackQuery',[
+'callback_query_id'=>$qid,
+'text'=>"Hech narsa topilmadi!",
+'show_alert'=>true,
+]);
+}else{
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$delFolds
+]);
+}}
+
+if(mb_stripos($data, "delFolm-")!==false){	
+$ex = explode("-",$data)[1];
+$bolim = explode("-",$data)[2];
+$del = file_get_contents("nakrutka/$bolim/ichki.txt");
+$k = str_replace("\n".$ex."","",$del);
+file_put_contents("nakrutka/$bolim/ichki.txt",$k);
+deleteFolder("nakrutka/$bolim/$ex");
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>O'chirish yakunlandi!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$panel
+]);
+}
+
+$bolim = file_get_contents("nakrutka/bolim.txt");
+$more = explode("\n",$bolim);
+$soni = substr_count($bolim,"\n");
+$key=[];
+for ($for = 1; $for <= $soni; $for++) {
+$key[]=["text"=>"$more[$for]","callback_data"=>"deleteXiz-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator1);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$delXiz = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+
+if($data == "delXiz"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$delXiz
+]);
+}
+
+if(mb_stripos($data, "deleteXiz-")!==false){
+$bolim = explode("-",$data)[1];
+file_put_contents("step/$cid2.bol",$bolim);
+$ichki = file_get_contents("nakrutka/$bolim/ichki.txt");
+$more = explode("\n",$ichki);
+$soni = substr_count($ichki,"\n");
+$key=[];
+for ($for = 1; $for <= $soni; $for++) {
+$key[]=["text"=>"$more[$for]","callback_data"=>"delx-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator2);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$delXizs = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$delXizs
+]);
+}
+
+if(mb_stripos($data, "delx-")!==false){
+$ichki = explode("-",$data)[1];
+$bolim = file_get_contents("step/$cid2.bol");
+$xizmat = file_get_contents("nakrutka/$bolim/$ichki/xizmat.txt");
+file_put_contents("step/$cid2.ich","$ichki");
+if($xizmat == null){
+bot('answerCallbackQuery',[
+'callback_query_id'=>$qid,
+'text'=>"Hech narsa topilmadi!",
+'show_alert'=>true,
+]);
+}else{
+$ids = explode("\n",$xizmat);
+$soni = substr_count($xizmat,"\n");
+foreach($ids as $id){
+$key = [];
+$text = "";
+for ($for = 1; $for <= $soni; $for++) {
+$text .= "<b>$for.</b> ".$ids[$for]."\n";
+$key[]=["text"=>"$for","callback_data"=>"delmat-".$ids[$for]];
+}
+$keyboard2 = array_chunk($key, $qator3);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$delsXiz = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>
+
+$text",
+'parse_mode'=>'html',
+'reply_markup'=>$delsXiz
+]);
+}}
+
+if(mb_stripos($data, "delmat-")!==false){
+$xizmat = explode("-",$data)[1];
+$ichki = file_get_contents("step/$cid2.ich");
+$bolim = file_get_contents("step/$cid2.bol");
+$del = file_get_contents("nakrutka/$bolim/$ichki/xizmat.txt");
+$k = str_replace("\n".$xizmat."","",$del);
+file_put_contents("nakrutka/$bolim/$ichki/xizmat.txt",$k);
+deleteFolder("nakrutka/$bolim/$ichki/$xizmat");
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>O'chirish yakunlandi!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$panel
+]);
+}
+
+if($data == "newFol"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Yangi bo'lim nomini yuboring:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish
+]);
+file_put_contents("step/$cid2.step",'newFol');
+}
+
+if($step == "newFol"){
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step"); 
+}else{
+if(in_array($cid,$admin)){
+mkdir("nakrutka/$text");
+file_put_contents("nakrutka/bolim.txt","$bolim\n$text");
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>$text</b> - nomli bo'lim qo'shildi!",
+'parse_mode'=>'html',
+'reply_markup'=>$panel
+]);
+unlink("step/$cid.step");
+}}}
+
+$bolim = file_get_contents("nakrutka/bolim.txt");
+$more = explode("\n",$bolim);
+$soni = substr_count($bolim,"\n");
+$key=[];
+for ($for = 1; $for <= $soni; $for++) {
+$title = str_replace("\n","",$more[$for]);
+$key[]=["text"=>"$more[$for]","callback_data"=>"adFol-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator1);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$adFol = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+
+if($data == "newFold"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$adFol
+]);
+}
+
+if(mb_stripos($data, "adFol-")!==false){
+$ex = explode("-",$data)[1];
+file_put_contents("step/test.txt",$ex);
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Yangi ichki bo'lim nomini yuboring:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish
+]);
+file_put_contents("step/$cid2.step",'newFold');
+}
+
+if($step == "newFold"){
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step"); 
+}else{
+if(in_array($cid,$admin)){
+mkdir("nakrutka/$test/$text");
+file_put_contents("nakrutka/$test/ichki.txt","$ichki\n$text");
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>$text</b> - nomli ichki bo'lim qo'shildi!",
+'parse_mode'=>'html',
+'reply_markup'=>$panel
+]);
+unlink("step/$cid.step");
+}}}
+
+$bolim = file_get_contents("nakrutka/bolim.txt");
+$more = explode("\n",$bolim);
+$soni = substr_count($bolim,"\n");
+$key=[];
+for ($for = 1; $for <= $soni; $for++) {
+$key[]=["text"=>"$more[$for]","callback_data"=>"add-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator1);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$adds = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+
+if($data == "newXiz"){
+if($bolim == null){
+bot('answerCallbackQuery',[
+'callback_query_id'=>$qid,
+'text'=>"Hech narsa topilmadi!",
+'show_alert'=>true,
+]);
+}else{
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$adds,
+]);
+}}
+
+if(mb_stripos($data, "add-")!==false){
+$ex = explode("-",$data)[1];
+file_put_contents("step/test.txt",$ex);
+$ichki = file_get_contents("nakrutka/$ex/ichki.txt");
+$more = explode("\n",$ichki);
+$soni = substr_count($ichki,"\n");
+$key=[];
+for ($for = 1; $for <= $soni; $for++) {
+$key[]=["text"=>"$more[$for]","callback_data"=>"adds-".$more[$for]];
+$keyboard2 = array_chunk($key, $qator2);
+$keyboard2[] = [['text'=>"Orqaga",'callback_data'=>"buy"]];
+$addz = json_encode([
+'inline_keyboard'=>$keyboard2,
+]);
+}
+if($ichki == null){
+bot('answerCallbackQuery',[
+'callback_query_id'=>$qid,
+'text'=>"Hech narsa topilmadi!",
+'show_alert'=>true,
+]);
+}else{
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$addz
+]);
+}}
+
+if(mb_stripos($data, "adds-")!==false){
+$ex = explode("-",$data)[1];
+file_put_contents("step/test1.txt",$ex);
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Yangi xizmat nomini yuboring:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish
+]);
+file_put_contents("step/$cid2.step",'ServisID');
+}
+
+if($step == "ServisID"){
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step"); 
+}else{
+if(in_array($cid,$admin)){
+mkdir("nakrutka/$test/$test1/$text");
+file_put_contents("nakrutka/$test/$test1/xizmat.txt","$xizmat\n$text");
+file_put_contents("step/test2.txt",$text);
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>$text</b> qabul qilindi. Endi esa, ushbu xizmatning Servis ID sini kiriting:",
+'parse_mode'=>'html',
+]);
+file_put_contents("step/$cid.step",'1ta');
+}}}
+
+if($step == "1ta"){
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step");
+unlink("nakrutka/$test/$test1/$test2");
+$royxat = file_get_contents("nakrutka/$test/$test1/xizmat.txt");
+$k = str_replace("\n".$test2."","",$royxat);
+file_put_contents("nakrutka/$test/$test1/xizmat.txt",$k);
+}else{
+if(in_array($cid,$admin)){
+if(is_numeric($text)==true){
+file_put_contents("nakrutka/$test/$test1/$test2/id.txt",$text);
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Qabul qilindi. 
+
+Xizmat haqida malumot yuboring:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$panel,
+]);
+file_put_contents("step/$cid.step",'tavsif');
+}else{
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Faqat raqamlardan foydalaning!</b>",
+'parse_mode'=>'html',
+]);
+}}}}
+
+if($step == "tavsif"){
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step");
+unlink("nakrutka/$test/$test1/$test2");
+$royxat = file_get_contents("nakrutka/$test/$test1/xizmat.txt");
+$k = str_replace("\n".$test2."","",$royxat);
+file_put_contents("nakrutka/$test/$test1/xizmat.txt",$k);
+}else{
+if(in_array($cid,$admin)){
+file_put_contents("nakrutka/$test/$test1/$test2/info.txt",$text);
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Yangi xizmat muvaffaqiyatli qo'shildi!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$panel,
+]);
+unlink("step/$cid.step");
+}}}
+
+if($text == "*️⃣ Birlamchi sozlamalar"){
+if(in_array($cid,$admin)){
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>*️⃣ Birlamchi sozlamalar bo'limidasiz.</b>
+
+<i>1. Valyuta - $valyuta
+2. VIP narxi - $narx $valyuta
+3. Taklif foizi - $referal%
+4. Pul o'tkazish narxi: $transfer $valyuta</i>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"💶 Valyuta",'callback_data'=>"valyuta"]],
+[['text'=>"💎 VIP narxi",'callback_data'=>"vnarx"]],
+[['text'=>"💸 Taklif foizi",'callback_data'=>"narx"]],
+[['text'=>"🔁 O'tkazma narxi",'callback_data'=>"transfer"]],
+]])
+]);
+}}
+
+if($data == "valyuta"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$cid2,
+'text'=>"📝 <b>Yangi qiymatni yuboring:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish,
+]);
+file_put_contents("step/$cid2.step",'valyuta');
+}
+
+if($step == "valyuta"){
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step"); 
+}else{
+if(in_array($cid,$admin)){
+file_put_contents("admin/valyuta.txt",$text);
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Muvaffaqiyatli o'zgartirildi!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$asosiy,
+]);
+unlink("step/$cid.step");
+}}}
+
+if($data == "narx"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$cid2,
+'text'=>"📝 <b>Yangi qiymatni yuboring:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish,
+]);
+file_put_contents("step/$cid2.step",'taklif');
+}
+
+if($step == "taklif"){
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step"); 
+}else{
+if(in_array($cid,$admin)){
+file_put_contents("admin/referal.txt",$text);
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Muvaffaqiyatli o'zgartirildi!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$asosiy,
+]);
+unlink("step/$cid.step");
+}}}
+
+if($data == "vnarx"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$cid2,
+'text'=>"📝 <b>Yangi qiymatni yuboring:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish,
+]);
+file_put_contents("step/$cid2.step",'vnarx');
+}
+
+if($step == "vnarx"){
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step"); 
+}else{
+if(in_array($cid,$admin)){
+file_put_contents("admin/vip.txt",$text);
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Muvaffaqiyatli o'zgartirildi!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$asosiy,
+]);
+unlink("step/$cid.step");
+}}}
+
+if($data == "transfer"){
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('SendMessage',[
+'chat_id'=>$cid2,
+'text'=>"📝 <b>Yangi qiymatni yuboring:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$boshqarish,
+]);
+file_put_contents("step/$cid2.step",'transfer');
+}
+
+if($step == "transfer"){
+if($tx=="🗄 Boshqarish"){ 
+unlink("step/$cid.step"); 
+}else{
+if(in_array($cid,$admin)){
+file_put_contents("admin/transfer.txt",$text);
+bot('SendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Muvaffaqiyatli o'zgartirildi!</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$asosiy,
+]);
+unlink("step/$cid.step");
+}}}
+
+if($text == "🎛 Tugmalar"){
+if(in_array($cid,$admin)){
+bot('sendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"$key1",'callback_data'=>"tugmath-key1"]],
+[['text'=>"$key4",'callback_data'=>"tugmath-key2"],['text'=>"$key5",'callback_data'=>"tugmath-key5"]],
+[['text'=>"$key2",'callback_data'=>"tugmath-key4"],['text'=>"$key3",'callback_data'=>"tugmath-key3"]],
+[['text'=>"$key6",'callback_data'=>"tugmath-key6"]],
+[['text'=>"⚠️ O'z holiga qaytarish",'callback_data'=>"reset"]],
+]])
+]);
+}}
+
+if($data == "tugmalar"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Quyidagilardan birini tanlang:</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"$key1",'callback_data'=>"tugmath-key1"]],
+[['text'=>"$key4",'callback_data'=>"tugmath-key2"],['text'=>"$key5",'callback_data'=>"tugmath-key5"]],
+[['text'=>"$key2",'callback_data'=>"tugmath-key4"],['text'=>"$key3",'callback_data'=>"tugmath-key3"]],
+[['text'=>"$key6",'callback_data'=>"tugmath-key6"]],
+[['text'=>"⚠️ O'z holiga qaytarish",'callback_data'=>"reset"]],
+]])
+]);
+}
+
+if($data == "reset"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Barcha tahrirlangan tugmalar bilan bog'liq sozlamalar o'chirib yuboriladi va birlamchi sozlamalar o'rnatiladi.</b>
+
+<i>Ushbu jarayonni davom ettirsangiz, avvalgi sozlamalarni tiklay olmaysiz, rozimisiz?</i>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"Roziman",'callback_data'=>'roziman']],
+[['text'=>"◀️ Orqaga",'callback_data'=>"tugmalar"]],
+]])
+]);
+}
+
+if($data == "roziman"){
+bot('editMessageText',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+'text'=>"<b>Tugma sozlamalari o'chirilib, birlamchi sozlamalar o'rnatildi.</b>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'inline_keyboard'=>[
+[['text'=>"◀️ Orqaga",'callback_data'=>"tugmalar"]],
+]])
+]);
+deleteFolder("tugma");
+}
+
+if(mb_stripos($data, "tugmath-")!==false){
+$ex = explode("-",$data)[1];
+$holat = file_get_contents("tugma/$ex.txt");
+bot('deleteMessage',[
+'chat_id'=>$cid2,
+'message_id'=>$mid2,
+]);
+bot('sendMessage',[
+'chat_id'=>$cid2,
+'text'=>"<b>Hozirgi holat:</b> $holat
+
+<i>Yangi qiymatni yuboring:</i>",
+'parse_mode'=>'html',
+'reply_markup'=>json_encode([
+'resize_keyboard'=>true,
+'keyboard'=>[
+[['text'=>"🗄 Boshqarish"]],
+]])
+]);
+file_put_contents("step/$cid2.step","tugmath-$ex");
+}
+
+if(mb_stripos($step, "tugmath-")!==false){
+if($tx=="🗄 Boshqarish"){
+unlink("step/$cid.step");
+}else{
+if(in_array($cid,$admin)){
+$ex = explode("-",$step)[1];
+file_put_contents("tugma/$ex.txt",$text);
+bot('sendMessage',[
+'chat_id'=>$cid,
+'text'=>"<b>Muvaffaqiyatli o'zgartirildi.</b>",
+'parse_mode'=>'html',
+'reply_markup'=>$panel,
+]);
+unlink("step/$cid.step");
+}}}
 
 $bytopish = glob("buyurtma/*/order.txt");
 foreach($bytopish as $bytopildi){
 $id = str_replace(["buyurtma/","/order.txt"], ["",""], $bytopildi);
 $byid = file_get_contents("buyurtma/$id/order.txt");
 $ega = file_get_contents("buyurtma/$id/egasi.txt");
- 
-$api_url = file_get_contents("sozlamalar/pul/api_url.txt");
-$orderstat=json_decode(file_get_contents("$api_url?key=$api&action=status&order=$byid"),true);
-
+$orderstat=json_decode(file_get_contents("$sayt?key=$api&action=status&order=$byid"),true);
 $xolati=$orderstat['status'];
 $miqdor=$orderstat['remains'];
 if($xolati=="Completed"){
@@ -4298,9 +4078,9 @@ $byid=file_get_contents("buyurtma/$id/miqdor.txt");
 $soni=file_get_contents("buyurtma/$id/soni.txt");
 $umumiy = $byid / $soni;
 $plus = $miqdor * $umumiy;
-$get = file_get_contents("foydalanuvchi/hisob/$ega.txt");
+$get = file_get_contents("pul/$ega.txt");
 $get += $plus;
-file_put_contents("foydalanuvchi/hisob/$ega.txt", $get);
+file_put_contents("pul/$ega.txt", $get);
 bot('sendMessage',[
 'chat_id'=>$ega,
 'text'=>"<b>❌ Buyurtma bekor qilindi!
@@ -4308,7 +4088,7 @@ bot('sendMessage',[
 🆔 Buyurtma IDsi:</b> $id
 <b>⚠️ Bajarilmagan buyurtma:</b> $miqdor ta 
 
-<b>💵 Qaytarilgan summa:</b> $plus $pul",
+<b>💵 Qaytarilgan summa:</b> $plus $valyuta",
 'parse_mode'=>"html",
 ]);
 deleteFolder("buyurtma/$id");
@@ -4321,9 +4101,9 @@ $byid=file_get_contents("buyurtma/$id/miqdor.txt");
 $soni=file_get_contents("buyurtma/$id/soni.txt");
 $umumiy = $byid / $soni;
 $plus = $miqdor * $umumiy;
-$get = file_get_contents("foydalanuvchi/hisob/$ega.txt");
+$get = file_get_contents("pul/$ega.txt");
 $get += $plus;
-file_put_contents("foydalanuvchi/hisob/$ega.txt", $get);
+file_put_contents("pul/$ega.txt", $get);
 bot('sendMessage',[
 'chat_id'=>$ega,
 'text'=>"<b>❌ Buyurtma bekor qilindi!
@@ -4331,7 +4111,7 @@ bot('sendMessage',[
 🆔 Buyurtma IDsi:</b> $id
 <b>⚠️ Bajarilmagan buyurtma:</b> $miqdor ta 
 
-<b>💵 Qaytarilgan summa:</b> $plus $pul",
+<b>💵 Qaytarilgan summa:</b> $plus $valyuta",
 'parse_mode'=>"html",
 ]);
 deleteFolder("buyurtma/$id");
@@ -4339,63 +4119,5 @@ $minus=file_get_contents("buyurtma/$ega.txt");
 $oladi = str_replace("\n".$id."","",$minus);
 file_put_contents("buyurtma/$ega.txt",$oladi);
 }}
-// ================= ADMIN XIZMAT QO'SHISH BOSHLANISHI =================
 
-// 1. Tugma bosilganda
-if($text == "➕ Xizmat qo'shish" and in_array($cid, $admin)){
-    file_put_contents("step/$cid.step", "nomi_qoshish");
-    bot('sendMessage',[
-        'chat_id'=>$cid,
-        'text'=>"<b>Xizmat nomini yuboring:</b>\n\nMasalan: <i>Telegram Obunachi</i>",
-        'parse_mode'=>"html",
-    ]);
-    exit();
-}
-
-// 2. Nomini yozganda
-if($step == "nomi_qoshish" and in_array($cid, $admin)){
-    file_put_contents("step/$cid.step", "narxi_qoshish");
-    file_put_contents("step/temp_name_$cid.txt", $text);
-    bot('sendMessage',[
-        'chat_id'=>$cid,
-        'text'=>"<b>Narxini yuboring (so'mda):</b>\n\nMasalan: <i>5000</i>",
-        'parse_mode'=>"html",
-    ]);
-    exit();
-}
-
-// 3. Narxini yozganda
-if($step == "narxi_qoshish" and in_array($cid, $admin)){
-    file_put_contents("step/$cid.step", "id_qoshish");
-    file_put_contents("step/temp_price_$cid.txt", $text);
-    bot('sendMessage',[
-        'chat_id'=>$cid,
-        'text'=>"<b>Xizmat ID raqamini yuboring:</b>\n\nMasalan: <i>154</i>",
-        'parse_mode'=>"html",
-    ]);
-    exit();
-}
-
-// 4. IDni yozganda va saqlash
-if($step == "id_qoshish" and in_array($cid, $admin)){
-    $nomi = file_get_contents("step/temp_name_$cid.txt");
-    $narxi = file_get_contents("step/temp_price_$cid.txt");
-    $id = $text;
-
-    // Xizmatni bazaga qo'shish (Format: ID|NOMI|NARXI)
-    file_put_contents("sozlamalar/xizmatlar.txt", "\n$id|$nomi|$narxi", FILE_APPEND);
-    
-    // Fayllarni tozalash
-    unlink("step/$cid.step");
-    unlink("step/temp_name_$cid.txt");
-    unlink("step/temp_price_$cid.txt");
-
-    bot('sendMessage',[
-        'chat_id'=>$cid,
-        'text'=>"<b>✅ Xizmat qo'shildi!</b>\n\nNomi: $nomi\nNarxi: $narxi\nID: $id",
-        'parse_mode'=>"html",
-    ]);
-    exit();
-}
-// ================= ADMIN XIZMAT QO'SHISH TUGADI =================
 ?>
