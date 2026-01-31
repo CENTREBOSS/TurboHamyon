@@ -776,29 +776,38 @@ if($userstep == "set_api_url"){
 
 
 if($userstep == "api"){
-if($tx=="🗄 Boshqaruv"){
-unlink("step/$cid.txt");
-}else{
-$balance= json_decode(file_get_contents("https://actualseen.uz/api/v2?key=$text&action=balance"),true);
-$valyuta=$balance['currency'];
-if($balance['balance']==null){
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>@actualseenbot dan olingan APIni yuboring:</b>",
-'parse_mode'=>"html",
-]);
-}else{
-file_put_contents("sozlamalar/pul/api.txt","$tx");
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"<b>API kalit qabul qilindi!
+    if($tx=="🗄 Boshqaruv"){
+        unlink("step/$cid.txt");
+    }else{
+        // 1. API manzilini fayldan o'qiymiz
+        $api_url = file_get_contents("sozlamalar/pul/api_url.txt");
+        
+        // 2. Siz yuborgan API kalit ($tx) bilan o'sha manzildan balansni tekshiramiz
+        $balance = json_decode(file_get_contents("$api_url?key=$tx&action=balance"),true);
+        $valyuta = $balance['currency'];
+        
+        if($balance['balance'] == null){
+            // Agar balans bo'sh bo'lsa, demak kalit xato yoki sayt javob bermayapti
+            bot('sendMessage',[
+                'chat_id'=>$cid,
+                'text'=>"<b>⚠️ API kalit noto'g'ri!</b>\n\nIltimos, ushbu manzildan olingan kalitni yuboring:\n$api_url",
+                'parse_mode'=>"html",
+            ]);
+        }else{
+            // Agar balans aniqlansa, demak API kalit to'g'ri va uni saqlaymiz
+            file_put_contents("sozlamalar/pul/api.txt","$tx");
+            bot('sendMessage',[
+                'chat_id'=>$cid,
+                'text'=>"<b>✅ API kalit qabul qilindi!
 
-API balans:</b> ".$balance['balance']." $valyuta",
-'parse_mode'=>"html",
-'reply_markup'=>$admin1_menu,
-]);
-unlink("step/$cid.txt");
-}}}
+💰 API balans:</b> ".$balance['balance']." $valyuta",
+                'parse_mode'=>"html",
+                'reply_markup'=>$admin1_menu,
+            ]);
+            unlink("step/$cid.txt");
+        }
+    }
+}
 
 if($tx == "🗄 Boshqaruv" and in_array($cid,$admin)){
 bot('sendMessage',[
