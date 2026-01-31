@@ -114,7 +114,10 @@ mkdir("buyurtma");
 mkdir("step");
 mkdir("ban");
 #-----------------------------
-
+if(!file_exists("sozlamalar/pul/api_url.txt")){
+    // Standart holatda actualseen.uz qoladi, lekin o'zgartirish mumkin bo'ladi
+    file_put_contents("sozlamalar/pul/api_url.txt","https://actualseen.uz/api/v2");
+}
 if(!file_exists("foydalanuvchi/hisob/$fid.nak")){
 file_put_contents("foydalanuvchi/hisob/$fid.nak","0");
 }
@@ -669,38 +672,44 @@ unlink("step/$cid.txt");
 }}
 
 if($tx=="🔑 API sozlash" and in_array($cid,$admin)){
-if($api==null){
-$ap1="<b>kiritilmagan</b>";
-$apt="🆕 APIni kiritish";
-}else{
-$ap1 = "<code>$api</code>"; 
-$apt="🆕 APIni almashtirish";
-}
-$balance= json_decode(file_get_contents("https://actualseen.uz/api/v2?key=$api&action=balance"),true);
-$valyuta=$balance['currency'];
-if($balance['balance']==null){
-$balans = "Mavjud emas";
-}else{
-$balans = "".$balance['balance']." $valyuta";
-}
-bot('sendMessage',[
-'chat_id'=>$cid,
-'text'=>"📄<b> API ma'lumotlari:</b>
+    $api_url = file_get_contents("sozlamalar/pul/api_url.txt");
+    if($api==null){
+        $ap1="<b>kiritilmagan</b>";
+        $apt="🆕 APIni kiritish";
+    }else{
+        $ap1 = "<code>$api</code>"; 
+        $apt="🆕 APIni almashtirish";
+    }
+    
+    // Balansni tekshirish qismi ham yangi URL dan foydalanishi kerak
+    $balance_url = "$api_url?key=$api&action=balance";
+    $balance= json_decode(file_get_contents($balance_url),true);
+    
+    $valyuta=$balance['currency'];
+    if($balance['balance']==null){
+        $balans = "Mavjud emas";
+    }else{
+        $balans = "".$balance['balance']." $valyuta";
+    }
+    
+    bot('sendMessage',[
+        'chat_id'=>$cid,
+        'text'=>"📄<b> API ma'lumotlari:</b>
 ➖➖➖➖➖➖➖➖➖➖➖
-<b>API kalit:</b>
-$ap1
+<b>🌐 API URL:</b> $api_url
+<b>🔑 API kalit:</b> $ap1
+<b>💰 API balans:</b> $balans
+➖➖➖➖➖➖➖➖➖➖➖",
+        'parse_mode'=>"html",
+        'reply_markup'=>json_encode([
+            'inline_keyboard'=>[
+                [['text'=>"$apt",'callback_data'=>"yangiapi"]],
+                [['text'=>"🌐 API Manzilini o'zgartirish",'callback_data'=>"change_api_url"]],
+            ]
+        ])
+    ]);
+}
 
-<b>API balans:</b>
-$balans
-➖➖➖➖➖➖➖➖➖➖➖
-<i>Quyidagilardan birini tanlang:</i>",
-'parse_mode'=>"html",
-'reply_markup'=>json_encode([
-'inline_keyboard'=>[
-[['text'=>"$apt",'callback_data'=>"yangiapi"]],
-]])
-]);
-}
 
 if($data=="yangiapi"){
 bot('deleteMessage',[
@@ -719,6 +728,53 @@ bot('sendMessage',[
 ]);
 file_put_contents("step/$ccid.txt","api");
 }
+
+if($data=="change_api_url"){
+    bot('deleteMessage',[
+        'chat_id'=>$ccid,
+        'message_id'=>$cmid,
+    ]);
+    bot('sendMessage',[
+        'chat_id'=>$ccid,
+        'text'=>"<b>Yangi API manzilini yuboring:</b>
+
+<i>Namuna: https://boshqasayt.com/api/v2</i>",
+        'parse_mode'=>"html",
+        'reply_markup'=>json_encode([
+            'resize_keyboard'=>true,
+            'keyboard'=>[
+                [['text'=>"🗄 Boshqaruv"]],
+            ]
+        ])
+    ]);
+    file_put_contents("step/$ccid.txt","set_api_url");
+}
+
+if($userstep == "set_api_url"){
+    if($tx=="🗄 Boshqaruv"){
+        unlink("step/$cid.txt");
+    }else{
+        if(filter_var($text, FILTER_VALIDATE_URL)){
+            file_put_contents("sozlamalar/pul/api_url.txt", $text);
+            bot('sendMessage',[
+                'chat_id'=>$cid,
+                'text'=>"<b>✅ API manzili o'zgartirildi!</b>",
+                'parse_mode'=>"html",
+                'reply_markup'=>$admin1_menu,
+            ]);
+            unlink("step/$cid.txt");
+        }else{
+            bot('sendMessage',[
+                'chat_id'=>$cid,
+                'text'=>"<b>⚠️ Noto'g'ri URL manzil! Qaytadan yuboring:</b>",
+                'parse_mode'=>"html",
+            ]);
+        }
+    }
+}
+
+
+
 if($userstep == "api"){
 if($tx=="🗄 Boshqaruv"){
 unlink("step/$cid.txt");
@@ -3363,8 +3419,11 @@ unlink("step/$ccid.txt");
 }else{
 $url = file_get_contents("foydalanuvchi/by/$ccid.url");
 file_put_contents("foydalanuvchi/by/buyurtma.$ccid","\n".$callfrid,FILE_APPEND);
-$urll=json_decode(file_get_contents("https://actualseen.uz/api/v2?key=$api&action=add&link=$url&quantity=$son&service=$id"),true);
-$order=$urll['order'];
+
+$api_url = file_get_contents("sozlamalar/pul/api_url.txt");
+$urll=json_decode(file_get_contents("$api_url?key=$api&action=add&link=$url&quantity=$son&service=$id"),true);
+
+ $order=$urll['order'];
 if($order==null){
 bot('sendMessage',[
 'chat_id'=>$ccid,
@@ -3930,7 +3989,10 @@ unlink("step/$cid.txt");
 $byyoq=file_get_contents("buyurtma/$tx/order.txt");
 if($byyoq){
 if(is_numeric($text)){
-$orderstat=json_decode(file_get_contents("https://actualseen.uz/api/v2?key=$api&action=status&order=$byyoq"),true);
+ 
+$api_url = file_get_contents("sozlamalar/pul/api_url.txt");
+$orderstat=json_decode(file_get_contents("$api_url?key=$api&action=status&order=$byyoq"),true);
+ 
 $miqdor=$orderstat['remains'];
 $xolati=$orderstat['status'];
 if($xolati=="Pending"){
@@ -4202,7 +4264,10 @@ foreach($bytopish as $bytopildi){
 $id = str_replace(["buyurtma/","/order.txt"], ["",""], $bytopildi);
 $byid = file_get_contents("buyurtma/$id/order.txt");
 $ega = file_get_contents("buyurtma/$id/egasi.txt");
-$orderstat=json_decode(file_get_contents("https://actualseen.uz/api/v2?key=$api&action=status&order=$byid"),true);
+ 
+$api_url = file_get_contents("sozlamalar/pul/api_url.txt");
+$orderstat=json_decode(file_get_contents("$api_url?key=$api&action=status&order=$byid"),true);
+
 $xolati=$orderstat['status'];
 $miqdor=$orderstat['remains'];
 if($xolati=="Completed"){
