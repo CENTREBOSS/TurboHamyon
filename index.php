@@ -1757,6 +1757,34 @@ $key = json_encode([
 'inline_keyboard'=>$keysboard2,
 ]);
 }
+
+    if(strpos($data, "tanla-") !== false){
+    $kat = explode("-", $data)[1];
+    $royxat = file_get_contents("sozlamalar/bot/$kat/ichkibolim.txt");
+    $more = explode("\n", $royxat);
+    $soni = substr_count($royxat, "\n");
+    $keys = [];
+    
+    for ($for = 1; $for <= $soni; $for++) {
+        $nomi = trim($more[$for]);
+        if(!empty($nomi)){
+            $keys[] = ["text" => "$nomi", "callback_data" => "viewserv-".$kat."-".$nomi];
+        }
+    }
+    
+    $keysboard = array_chunk($keys, 1);
+    $keysboard[] = [['text' => "➕ Ichki xizmat qo'shish", 'callback_data' => "addichki-$kat"]];
+    $keysboard[] = [['text' => "◀️ Orqaga", 'callback_data' => "xiztah"]];
+    
+    bot('editMessageText', [
+        'chat_id' => $ccid,
+        'message_id' => $cmid,
+        'text' => "<b>$kat</b> kategoriyasi ichidagi xizmatlar:",
+        'parse_mode' => 'html',
+        'reply_markup' => json_encode(['inline_keyboard' => $keysboard])
+    ]);
+}
+    
 if($bolim != null){
 bot('editMessageText',[
 'chat_id'=>$ccid,
